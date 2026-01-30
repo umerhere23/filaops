@@ -957,9 +957,13 @@ async def get_tax_summary(
         if month_end > now:
             month_end = now
 
+        # shipped_at is naive (DateTime without timezone=True), so strip
+        # tzinfo from the aware boundaries for a safe comparison.
+        cur_naive = current.replace(tzinfo=None)
+        end_naive = month_end.replace(tzinfo=None)
         month_orders = [
             o for o in orders
-            if o.shipped_at and current.replace(tzinfo=None) <= o.shipped_at.replace(tzinfo=None) <= month_end.replace(tzinfo=None)
+            if o.shipped_at and cur_naive <= o.shipped_at <= end_naive
         ]
         month_tax = sum(float(o.tax_amount or 0) for o in month_orders)
         month_taxable = sum(

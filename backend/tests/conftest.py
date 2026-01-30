@@ -84,6 +84,17 @@ def seed_test_data():
                 db.add(GLAccount(account_code=code, name=name, account_type=acct_type))
 
         db.commit()
+
+        # Synchronize PostgreSQL sequences after explicit-ID inserts.
+        # Without this, auto-increment will try id=1 and collide with seeded rows.
+        from sqlalchemy import text
+        for table in ("users", "inventory_locations", "work_centers"):
+            db.execute(text(
+                f"SELECT setval(pg_get_serial_sequence('{table}', 'id'), "
+                f"COALESCE((SELECT MAX(id) FROM {table}), 1))"
+            ))
+        db.commit()
+
         yield
     finally:
         db.close()
