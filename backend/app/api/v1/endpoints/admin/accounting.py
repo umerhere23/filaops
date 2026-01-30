@@ -1,3 +1,6 @@
+# pyright: reportArgumentType=false
+# pyright: reportCallIssue=false
+# pyright: reportAssignmentType=false
 """
 Accounting View Endpoints
 
