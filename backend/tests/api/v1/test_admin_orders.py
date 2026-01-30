@@ -151,8 +151,8 @@ class TestOrderImportValid:
         db.flush()
 
         csv_text = (
-            "Customer Email,Product SKU,Quantity\n"
-            f"noprice@example.com,{product.sku},1\n"
+            "Order ID,Customer Email,Product SKU,Quantity\n"
+            f"ORD-NOPRICE,noprice@example.com,{product.sku},1\n"
         )
         response = _csv_upload(client, csv_text)
 
@@ -165,8 +165,8 @@ class TestOrderImportValid:
         db.flush()
 
         csv_text = (
-            "Customer Email,Product SKU,Quantity,Unit Price,Shipping Cost,Tax Amount\n"
-            f"ship@example.com,{product.sku},2,10.00,5.50,1.25\n"
+            "Order ID,Customer Email,Product SKU,Quantity,Unit Price,Shipping Cost,Tax Amount\n"
+            f"ORD-SHIP,ship@example.com,{product.sku},2,10.00,5.50,1.25\n"
         )
         response = _csv_upload(client, csv_text)
 
@@ -179,8 +179,8 @@ class TestOrderImportValid:
         db.flush()
 
         csv_text = (
-            "Customer Email,Product SKU,Quantity,Unit Price\n"
-            f"dollar@example.com,{product.sku},1,$250.00\n"
+            "Order ID,Customer Email,Product SKU,Quantity,Unit Price\n"
+            f"ORD-DOLLAR,dollar@example.com,{product.sku},1,$250.00\n"
         )
         response = _csv_upload(client, csv_text)
 
@@ -193,8 +193,8 @@ class TestOrderImportValid:
         db.flush()
 
         csv_text = (
-            "Customer Email,Product SKU,Quantity,Unit Price\n"
-            "case@example.com,csv-case-001,1,10.00\n"
+            "Order ID,Customer Email,Product SKU,Quantity,Unit Price\n"
+            "ORD-CASE,case@example.com,csv-case-001,1,10.00\n"
         )
         response = _csv_upload(client, csv_text)
 
@@ -207,9 +207,9 @@ class TestOrderImportValid:
         db.flush()
 
         csv_text = (
-            "Customer Email,Customer Name,Product SKU,Quantity,Unit Price,"
+            "Order ID,Customer Email,Customer Name,Product SKU,Quantity,Unit Price,"
             "Shipping Address Line 1,Shipping City,Shipping State,Shipping Zip,Shipping Country\n"
-            f"addr@example.com,Addr User,{product.sku},1,10.00,"
+            f"ORD-ADDR,addr@example.com,Addr User,{product.sku},1,10.00,"
             "123 Main St,Springfield,IL,62701,USA\n"
         )
         response = _csv_upload(client, csv_text)
@@ -312,8 +312,8 @@ class TestOrderImportErrors:
         db.flush()
 
         csv_text = (
-            "Customer Email,Product SKU,Quantity,Unit Price\n"
-            f",{product.sku},1,10.00\n"
+            "Order ID,Customer Email,Product SKU,Quantity,Unit Price\n"
+            f"ORD-NOEMAIL,,{product.sku},1,10.00\n"
         )
         response = _csv_upload(client, csv_text)
 
@@ -470,8 +470,8 @@ class TestOrderImportColumnVariations:
         db.flush()
 
         csv_text = (
-            "Email,SKU,Quantity,Price\n"
-            f"alias@example.com,{product.sku},1,10.00\n"
+            "Order ID,Email,SKU,Quantity,Price\n"
+            f"ORD-ALIAS,alias@example.com,{product.sku},1,10.00\n"
         )
         response = _csv_upload(client, csv_text)
 
@@ -492,8 +492,8 @@ class TestOrderImportEncoding:
         db.flush()
 
         csv_text = (
-            "\ufeffCustomer Email,Product SKU,Quantity,Unit Price\n"
-            f"bom@example.com,{product.sku},1,10.00\n"
+            "\ufeffOrder ID,Customer Email,Product SKU,Quantity,Unit Price\n"
+            f"ORD-BOM,bom@example.com,{product.sku},1,10.00\n"
         )
         response = _csv_upload(client, csv_text)
 
