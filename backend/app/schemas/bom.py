@@ -80,7 +80,10 @@ class BOMLineResponse(BOMLineBase):
     component_name: Optional[str] = None
     component_unit: Optional[str] = None
     component_cost: Optional[Decimal] = None
+    component_cost_unit: Optional[str] = None
     line_cost: Optional[Decimal] = None  # quantity * component_cost
+    qty_needed: Optional[float] = None
+    is_material: Optional[bool] = None
     # Inventory info
     inventory_on_hand: Optional[float] = None
     inventory_available: Optional[float] = None

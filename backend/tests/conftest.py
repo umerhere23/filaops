@@ -317,7 +317,7 @@ def make_purchase_order(db):
             po_number=kwargs.pop("po_number", f"PO-TEST-{uid}"),
             vendor_id=vendor_id,
             status=status,
-            created_by=kwargs.pop("created_by", 1),
+            created_by=kwargs.pop("created_by", "1"),
             **kwargs,
         )
         db.add(po)
@@ -343,7 +343,7 @@ def make_bom(db):
         bom = BOM(
             product_id=product_id,
             name=kwargs.pop("name", f"BOM-{uid}"),
-            active=True,
+            active=kwargs.pop("active", True),
             **kwargs,
         )
         db.add(bom)

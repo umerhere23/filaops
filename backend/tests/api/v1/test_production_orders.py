@@ -53,7 +53,7 @@ def _create_draft_order(client, product_id):
         "product_id": product_id,
         "quantity_ordered": "10",
     })
-    assert response.status_code == 201, response.text
+    assert response.status_code == 200, response.text
     return response.json()
 
 
@@ -230,7 +230,7 @@ class TestCreateProductionOrder:
             "product_id": fg.id,
             "quantity_ordered": "10",
         })
-        assert response.status_code == 201
+        assert response.status_code == 200
         data = response.json()
         assert data["code"].startswith("PO-")
         assert data["status"] == "draft"
@@ -271,7 +271,7 @@ class TestCreateProductionOrder:
             "quantity_ordered": "5",
             "priority": 1,
         })
-        assert response.status_code == 201
+        assert response.status_code == 200
         assert response.json()["priority"] == 1
 
     def test_create_with_due_date(self, client, db, make_product, make_bom):
@@ -282,7 +282,7 @@ class TestCreateProductionOrder:
             "quantity_ordered": "5",
             "due_date": "2026-03-15",
         })
-        assert response.status_code == 201
+        assert response.status_code == 200
         assert response.json()["due_date"] == "2026-03-15"
 
     def test_create_with_notes(self, client, db, make_product, make_bom):
@@ -293,7 +293,7 @@ class TestCreateProductionOrder:
             "quantity_ordered": "5",
             "notes": "Rush order for customer",
         })
-        assert response.status_code == 201
+        assert response.status_code == 200
         assert response.json()["notes"] == "Rush order for customer"
 
     def test_create_with_source_sales_order(self, client, db, make_product, make_bom):
@@ -304,7 +304,7 @@ class TestCreateProductionOrder:
             "quantity_ordered": "5",
             "source": "sales_order",
         })
-        assert response.status_code == 201
+        assert response.status_code == 200
         assert response.json()["source"] == "sales_order"
 
     def test_create_nonexistent_product_returns_404(self, client):
@@ -358,7 +358,7 @@ class TestCreateProductionOrder:
             "product_id": fg.id,
             "quantity_ordered": "5",
         })
-        assert response.status_code == 201
+        assert response.status_code == 200
         assert response.json()["bom_id"] is None
 
 

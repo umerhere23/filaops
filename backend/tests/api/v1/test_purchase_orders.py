@@ -161,6 +161,7 @@ class TestGetPurchaseOrder:
         vendor = make_vendor()
         po = make_purchase_order(vendor_id=vendor.id)
         db.flush()
+        db.expire_all()
 
         response = client.get(f"{BASE_URL}/{po.id}")
         assert response.status_code == 200
@@ -174,6 +175,7 @@ class TestGetPurchaseOrder:
         vendor = make_vendor()
         po = make_purchase_order(vendor_id=vendor.id)
         db.flush()
+        db.expire_all()
 
         response = client.get(f"{BASE_URL}/{po.id}")
         assert response.status_code == 200
@@ -185,6 +187,7 @@ class TestGetPurchaseOrder:
         vendor = make_vendor(name="Acme Supplies")
         po = make_purchase_order(vendor_id=vendor.id)
         db.flush()
+        db.expire_all()
 
         response = client.get(f"{BASE_URL}/{po.id}")
         assert response.status_code == 200
