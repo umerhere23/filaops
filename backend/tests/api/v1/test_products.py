@@ -361,8 +361,8 @@ class TestProductUpdate:
         po_line = PurchaseOrderLine(
             purchase_order_id=po.id,
             product_id=product.id,
-            quantity=10,
-            unit_price=Decimal("5.00"),
+            line_number=1,
+            quantity_ordered=Decimal("10"),
         )
         db.add(po_line)
         db.flush()
@@ -386,7 +386,7 @@ class TestProductUpdate:
             location_id=1,
             quantity=Decimal("10"),
             transaction_type="receipt",
-            reference="TEST",
+            reference_type="adjustment",
         )
         db.add(txn)
         db.flush()
@@ -408,6 +408,7 @@ class TestProductUpdate:
         lot = MaterialLot(
             product_id=product.id,
             lot_number=f"LOT-{uid}",
+            quantity_received=Decimal("100"),
         )
         db.add(lot)
         db.flush()
