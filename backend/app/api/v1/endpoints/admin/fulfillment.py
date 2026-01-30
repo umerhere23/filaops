@@ -212,7 +212,7 @@ def build_production_queue_item(po: ProductionOrder, db: Session) -> dict:
         "priority": po.priority,
         "estimated_time_minutes": po.estimated_time_minutes,
         "created_at": po.created_at,
-        "started_at": po.start_date,
+        "started_at": po.actual_start,
         "customer_name": customer.full_name if customer else None,
         "has_shipping_address": bool(quote and quote.shipping_address_line1) if quote else False,
         "shipping_city": quote.shipping_city if quote else None,
@@ -833,7 +833,7 @@ async def complete_print(
             materials_to_consume.append(MaterialConsumption(
                 product_id=mat["component_id"],
                 quantity=Decimal(str(mat["quantity_consumed"])),
-                unit_cost=product.standard_cost if product and product.standard_cost else Decimal("0"),
+                unit_cost=(product.standard_cost or product.average_cost or Decimal("0")) if product else Decimal("0"),
                 unit=product.unit if product and product.unit else "EA",
             ))
 

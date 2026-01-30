@@ -64,12 +64,17 @@ def seed_test_data():
 
         # Seed core GL accounts (idempotent)
         gl_accounts = [
-            ("1300", "Inventory Asset", "asset"),
-            ("1310", "WIP Inventory", "asset"),
             ("1200", "Accounts Receivable", "asset"),
+            ("1210", "WIP Inventory", "asset"),
+            ("1220", "Finished Goods Inventory", "asset"),
+            ("1230", "Packaging Inventory", "asset"),
+            ("1300", "Inventory Asset", "asset"),
+            ("1310", "WIP Inventory (Legacy)", "asset"),
             ("2000", "Accounts Payable", "liability"),
             ("4000", "Sales Revenue", "revenue"),
             ("5000", "Cost of Goods Sold", "expense"),
+            ("5010", "Shipping Supplies", "expense"),
+            ("5020", "Scrap Expense (Production)", "expense"),
             ("5100", "Material Cost", "expense"),
             ("5200", "Scrap Expense", "expense"),
             ("5500", "Inventory Adjustment", "expense"),

@@ -40,6 +40,7 @@ def _create_product_with_bom(make_product, make_bom, db):
         unit="G",
         is_raw_material=True,
         average_cost=Decimal("0.02"),
+        standard_cost=Decimal("0.02"),
     )
     bom = make_bom(
         product_id=fg.id,

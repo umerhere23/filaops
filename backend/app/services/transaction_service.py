@@ -271,20 +271,23 @@ class TransactionService:
             total_cost += mat.quantity * mat.unit_cost
 
         # Create journal entry: DR WIP, CR Raw Materials
-        je = self._create_journal_entry(
-            description=f"Material issue for PO#{production_order_id} op {operation_sequence}",
-            lines=[
-                ("1210", total_cost, "DR"),  # WIP Inventory
-                ("1200", total_cost, "CR"),  # Raw Materials Inventory
-            ],
-            source_type="production_order",
-            source_id=production_order_id,
-            user_id=user_id,
-        )
+        # Skip GL entry if total cost is zero (no monetary value to record)
+        je = None
+        if total_cost > 0:
+            je = self._create_journal_entry(
+                description=f"Material issue for PO#{production_order_id} op {operation_sequence}",
+                lines=[
+                    ("1210", total_cost, "DR"),  # WIP Inventory
+                    ("1200", total_cost, "CR"),  # Raw Materials Inventory
+                ],
+                source_type="production_order",
+                source_id=production_order_id,
+                user_id=user_id,
+            )
 
-        # Link transactions to journal entry
-        for inv_txn in inv_txns:
-            inv_txn.journal_entry_id = je.id
+            # Link transactions to journal entry
+            for inv_txn in inv_txns:
+                inv_txn.journal_entry_id = je.id
 
         return inv_txns, je
 
@@ -324,18 +327,21 @@ class TransactionService:
         self._update_inventory_quantity(product_id, quantity)
 
         # Create journal entry: DR FG Inventory, CR WIP
-        je = self._create_journal_entry(
-            description=f"FG receipt from PO#{production_order_id}",
-            lines=[
-                ("1220", total_cost, "DR"),  # FG Inventory
-                ("1210", total_cost, "CR"),  # WIP Inventory
-            ],
-            source_type="production_order",
-            source_id=production_order_id,
-            user_id=user_id,
-        )
+        # Skip GL entry if total cost is zero (no monetary value to record)
+        je = None
+        if total_cost > 0:
+            je = self._create_journal_entry(
+                description=f"FG receipt from PO#{production_order_id}",
+                lines=[
+                    ("1220", total_cost, "DR"),  # FG Inventory
+                    ("1210", total_cost, "CR"),  # WIP Inventory
+                ],
+                source_type="production_order",
+                source_id=production_order_id,
+                user_id=user_id,
+            )
 
-        inv_txn.journal_entry_id = je.id
+            inv_txn.journal_entry_id = je.id
 
         return inv_txn, je
 
@@ -378,18 +384,21 @@ class TransactionService:
         # Only update if scrapping FG that was already receipted
 
         # Create journal entry: DR Scrap Expense, CR WIP
-        je = self._create_journal_entry(
-            description=f"Scrap at PO#{production_order_id} op {operation_sequence}: {reason_code}",
-            lines=[
-                ("5020", total_cost, "DR"),  # Scrap Expense
-                ("1210", total_cost, "CR"),  # WIP Inventory
-            ],
-            source_type="production_order",
-            source_id=production_order_id,
-            user_id=user_id,
-        )
+        # Skip GL entry if total cost is zero (no monetary value to record)
+        je = None
+        if total_cost > 0:
+            je = self._create_journal_entry(
+                description=f"Scrap at PO#{production_order_id} op {operation_sequence}: {reason_code}",
+                lines=[
+                    ("5020", total_cost, "DR"),  # Scrap Expense
+                    ("1210", total_cost, "CR"),  # WIP Inventory
+                ],
+                source_type="production_order",
+                source_id=production_order_id,
+                user_id=user_id,
+            )
 
-        inv_txn.journal_entry_id = je.id
+            inv_txn.journal_entry_id = je.id
 
         # Create scrap record
         scrap = ScrapRecord(
@@ -403,7 +412,7 @@ class TransactionService:
             scrap_reason_code=reason_code,
             notes=notes,
             inventory_transaction_id=inv_txn.id,
-            journal_entry_id=je.id,
+            journal_entry_id=je.id if je else None,
             created_by_user_id=user_id,
         )
         self.db.add(scrap)
@@ -481,17 +490,20 @@ class TransactionService:
             je_lines.append(("5010", pkg_total, "DR"))   # Shipping Supplies
             je_lines.append(("1230", pkg_total, "CR"))   # Packaging Inventory
 
-        # Create journal entry
-        je = self._create_journal_entry(
-            description=f"Shipment for SO#{sales_order_id}",
-            lines=je_lines,
-            source_type="sales_order",
-            source_id=sales_order_id,
-            user_id=user_id,
-        )
+        # Create journal entry (skip if all amounts are zero)
+        je = None
+        total_amount = fg_total + pkg_total
+        if total_amount > 0:
+            je = self._create_journal_entry(
+                description=f"Shipment for SO#{sales_order_id}",
+                lines=je_lines,
+                source_type="sales_order",
+                source_id=sales_order_id,
+                user_id=user_id,
+            )
 
-        for inv_txn in inv_txns:
-            inv_txn.journal_entry_id = je.id
+            for inv_txn in inv_txns:
+                inv_txn.journal_entry_id = je.id
 
         return inv_txns, je
 
