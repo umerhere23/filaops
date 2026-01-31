@@ -1,7 +1,7 @@
 """add_order_type_to_production_order
 
 Revision ID: 9056086f1897
-Revises: 051_add_user_customer_access
+Revises: 046_add_business_type
 Create Date: 2026-01-20 00:26:36.127359
 
 """
@@ -13,7 +13,7 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision: str = '9056086f1897'
-down_revision: Union[str, Sequence[str], None] = '051_add_user_customer_access'
+down_revision: Union[str, Sequence[str], None] = '046_add_business_type'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
