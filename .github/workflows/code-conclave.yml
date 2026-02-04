@@ -19,6 +19,8 @@ jobs:
       uses: actions/checkout@v4
       with:
         repository: Blb3D/review-council
+        ref: ca1d8f0626ce50c3482d89638be4a6ad354788d2  # Pin to audited commit; update SHA after review
+        token: ${{ secrets.REVIEW_COUNCIL_TOKEN }}
         path: .code-conclave-tool
     
     - name: Run Code Conclave
