@@ -138,7 +138,12 @@ def _get_overdue_sales_orders(db: Session) -> List[ActionItem]:
     ).all()
 
     for so in overdue_orders:
-        days_overdue = (now - so.estimated_completion_date).days
+        # estimated_completion_date is naive (no tz); compare with naive now
+        ecd = so.estimated_completion_date
+        if ecd.tzinfo is None:
+            days_overdue = (now.replace(tzinfo=None) - ecd).days
+        else:
+            days_overdue = (now - ecd).days
 
         items.append(ActionItem(
             id=f"overdue_so_{so.id}",

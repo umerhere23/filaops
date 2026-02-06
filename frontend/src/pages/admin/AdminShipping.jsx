@@ -387,10 +387,8 @@ export default function AdminShipping() {
       const orderList = data.items || data || [];
       setOrders(orderList);
 
-      // Fetch production status for all orders
-      orderList.forEach((order) => {
-        fetchProductionStatus(order.id);
-      });
+      // Fetch production status for all orders in one batch call
+      fetchAllProductionStatuses(orderList);
 
       // Fetch shipped today for metrics
       fetchShippedToday();
@@ -417,33 +415,66 @@ export default function AdminShipping() {
     }
   };
 
+  const computeProductionStatus = (pos) => {
+    const allComplete = pos.length > 0 && pos.every((po) => po.status === "complete" || po.status === "closed");
+    const anyInProgress = pos.some((po) => po.status === "in_progress");
+    const totalOrdered = pos.reduce((sum, po) => sum + parseFloat(po.quantity_ordered || 0), 0);
+    const totalCompleted = pos.reduce((sum, po) => sum + parseFloat(po.quantity_completed || 0), 0);
+    return {
+      hasProductionOrders: pos.length > 0,
+      allComplete,
+      anyInProgress,
+      totalOrdered,
+      totalCompleted,
+      completionPercent: totalOrdered > 0 ? (totalCompleted / totalOrdered) * 100 : 0,
+    };
+  };
+
+  // Batch fetch: one API call for all production orders, group by sales_order_id
+  const fetchAllProductionStatuses = async (orderList) => {
+    if (!token || orderList.length === 0) return;
+    try {
+      const res = await fetch(
+        `${API_URL}/api/v1/production-orders?limit=500`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      if (res.ok) {
+        const data = await res.json();
+        const allPOs = data.items || data || [];
+        const orderIds = new Set(orderList.map((o) => o.id));
+        // Group production orders by sales_order_id
+        const grouped = {};
+        for (const po of allPOs) {
+          if (po.sales_order_id && orderIds.has(po.sales_order_id)) {
+            if (!grouped[po.sales_order_id]) grouped[po.sales_order_id] = [];
+            grouped[po.sales_order_id].push(po);
+          }
+        }
+        const statusMap = {};
+        for (const order of orderList) {
+          statusMap[order.id] = computeProductionStatus(grouped[order.id] || []);
+        }
+        setProductionStatus(statusMap);
+      }
+    } catch {
+      // Non-critical - production status just won't show
+    }
+  };
+
+  // Single order fetch (used for individual refresh)
   const fetchProductionStatus = async (orderId) => {
     if (!token) return;
-
     try {
       const res = await fetch(
         `${API_URL}/api/v1/production-orders?sales_order_id=${orderId}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
-
       if (res.ok) {
         const data = await res.json();
         const pos = data.items || data || [];
-        const allComplete = pos.length > 0 && pos.every((po) => po.status === "complete" || po.status === "closed");
-        const anyInProgress = pos.some((po) => po.status === "in_progress");
-        const totalOrdered = pos.reduce((sum, po) => sum + parseFloat(po.quantity_ordered || 0), 0);
-        const totalCompleted = pos.reduce((sum, po) => sum + parseFloat(po.quantity_completed || 0), 0);
-
         setProductionStatus((prev) => ({
           ...prev,
-          [orderId]: {
-            hasProductionOrders: pos.length > 0,
-            allComplete,
-            anyInProgress,
-            totalOrdered,
-            totalCompleted,
-            completionPercent: totalOrdered > 0 ? (totalCompleted / totalOrdered) * 100 : 0,
-          },
+          [orderId]: computeProductionStatus(pos),
         }));
       }
     } catch {

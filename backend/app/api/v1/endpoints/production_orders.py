@@ -417,9 +417,7 @@ async def get_scrap_reasons(
                 code=r.code,
                 name=r.name,
                 description=r.description,
-                category=r.category,
                 sequence=r.sequence or 0,
-                requires_remake=r.requires_remake or False,
                 active=r.active,
             )
             for r in reasons
@@ -441,9 +439,7 @@ async def get_all_scrap_reasons(
             code=r.code,
             name=r.name,
             description=r.description,
-            category=r.category,
             sequence=r.sequence or 0,
-            requires_remake=r.requires_remake or False,
             active=r.active,
         )
         for r in reasons
