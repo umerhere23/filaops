@@ -458,9 +458,7 @@ async def create_scrap_reason(
         code=request.code,
         name=request.name,
         description=request.description,
-        category=request.category,
         sequence=request.sequence or 0,
-        requires_remake=request.requires_remake or False,
     )
 
     db.commit()
@@ -471,9 +469,7 @@ async def create_scrap_reason(
         code=reason.code,
         name=reason.name,
         description=reason.description,
-        category=reason.category,
         sequence=reason.sequence or 0,
-        requires_remake=reason.requires_remake or False,
         active=reason.active,
     )
 
@@ -491,9 +487,7 @@ async def update_scrap_reason(
         reason_id,
         name=request.name,
         description=request.description,
-        category=request.category,
         sequence=request.sequence,
-        requires_remake=request.requires_remake,
         active=request.active,
     )
 
@@ -505,9 +499,7 @@ async def update_scrap_reason(
         code=reason.code,
         name=reason.name,
         description=reason.description,
-        category=reason.category,
         sequence=reason.sequence or 0,
-        requires_remake=reason.requires_remake or False,
         active=reason.active,
     )
 
