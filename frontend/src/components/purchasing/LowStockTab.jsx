@@ -274,7 +274,7 @@ export default function LowStockTab({
                         </button>
                         <button
                           onClick={() =>
-                            (window.location.href = `/admin?tab=items&edit=${item.id}`)
+                            (window.location.href = `/admin/items?edit=${item.id}`)
                           }
                           className="px-3 py-1 bg-gray-700 hover:bg-gray-600 rounded text-xs text-gray-300"
                         >

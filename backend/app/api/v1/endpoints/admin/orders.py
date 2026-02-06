@@ -5,7 +5,7 @@ Business logic lives in ``app.services.order_import_service``.
 """
 import io
 from typing import List
-from fastapi import APIRouter, Depends, HTTPException, File, UploadFile, Query
+from fastapi import APIRouter, Depends, File, UploadFile, Query
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 from pydantic import BaseModel

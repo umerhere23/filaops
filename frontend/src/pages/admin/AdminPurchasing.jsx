@@ -237,9 +237,22 @@ export default function AdminPurchasing() {
     if (activeTab === "orders") fetchOrders();
     else if (activeTab === "vendors") fetchVendors();
     else if (activeTab === "low-stock") fetchLowStock();
-    // Import tab doesn't need data fetching on mount
-    fetchProducts();
+    // Products are lazy-loaded when PO modal opens (not on every tab change)
   }, [activeTab, filters.status]);
+
+  // Lazy-load products when PO modal opens (avoids 8k+ item fetch on page load)
+  useEffect(() => {
+    if (showPOModal && products.length === 0) {
+      fetchProducts();
+    }
+  }, [showPOModal]);
+
+  // Also fetch products when create_po URL param is present
+  useEffect(() => {
+    if (searchParams.get("create_po") === "true" && products.length === 0) {
+      fetchProducts();
+    }
+  }, [searchParams]);
 
   // Fetch vendors, low stock count, and company settings on mount
   useEffect(() => {

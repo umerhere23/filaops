@@ -513,6 +513,7 @@ class ScrapReasonDetail(BaseModel):
     name: str
     description: Optional[str] = None
     sequence: int
+    active: bool = True
 
     class Config:
         from_attributes = True

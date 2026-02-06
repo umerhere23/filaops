@@ -511,6 +511,23 @@ export default function AdminLayout() {
     }
   });
 
+  // Company logo from settings
+  const [companyLogoUrl, setCompanyLogoUrl] = useState(null);
+
+  useEffect(() => {
+    const checkCompanyLogo = async () => {
+      try {
+        const res = await fetch(`${API_URL}/api/v1/settings/company/logo`);
+        if (res.ok) {
+          setCompanyLogoUrl(`${API_URL}/api/v1/settings/company/logo`);
+        }
+      } catch {
+        // No logo uploaded - use default
+      }
+    };
+    checkCompanyLogo();
+  }, []);
+
   // AI Settings for SecurityBadge
   const [aiSettings, setAiSettings] = useState(null);
   const [aiSettingsFailed, setAiSettingsFailed] = useState(false);
@@ -617,9 +634,8 @@ export default function AdminLayout() {
             >
               <div className="p-4 flex items-center justify-between" style={{ borderBottom: '1px solid var(--border-subtle)' }}>
                 <Link to="/admin" className="flex items-center gap-3">
-                  {/* Dual logos - BLB3D + FilaOps */}
                   <div className="logo-container">
-                    <img src={logoBLB3D} alt="BLB3D" className="h-10 w-auto logo-glow" />
+                    <img src={companyLogoUrl || logoBLB3D} alt="Company Logo" className="h-10 w-auto logo-glow" />
                   </div>
                   <img src={logoNavbar} alt="FilaOps" className="h-32" />
                 </Link>
@@ -686,10 +702,9 @@ export default function AdminLayout() {
           style={{ backgroundColor: 'var(--bg-secondary)', borderRight: '1px solid var(--border-subtle)' }}
         >
           <div className="p-4 flex items-center justify-between" style={{ borderBottom: '1px solid var(--border-subtle)' }}>
-            <Link to="/admin" className={`flex items-center ${sidebarOpen ? 'gap-3' : 'justify-center w-full'}`}>
-              {/* Dual logos - BLB3D + FilaOps */}
+            <Link to="\admin" className={`flex items-center ${sidebarOpen ? 'gap-3' : 'justify-center w-full'}`}>
               <div className="logo-container">
-                <img src={logoBLB3D} alt="BLB3D" className="h-10 w-auto logo-glow" />
+                <img src={companyLogoUrl || logoBLB3D} alt="Company Logo" className="h-10 w-auto logo-glow" />
               </div>
               {sidebarOpen && <img src={logoNavbar} alt="FilaOps" className="h-32" />}
             </Link>
