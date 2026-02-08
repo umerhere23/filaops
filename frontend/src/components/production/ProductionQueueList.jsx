@@ -126,7 +126,7 @@ function ProductionQueueRow({ order, operations, onRowClick }) {
 
       {/* Product */}
       <td className="px-4 py-3">
-        <div className="text-white">{order.product?.name || order.item?.name || 'Unknown'}</div>
+        <div className="text-white">{order.product_name || order.product?.name || 'Unknown'}</div>
         <div className="text-xs text-gray-500">Qty: {order.quantity_ordered}</div>
       </td>
 
@@ -266,8 +266,8 @@ export default function ProductionQueueList({
     if (filters?.search) {
       const search = filters.search.toLowerCase();
       const matchesCode = order.code?.toLowerCase().includes(search);
-      const matchesProduct = order.product?.name?.toLowerCase().includes(search) ||
-                            order.item?.name?.toLowerCase().includes(search);
+      const matchesProduct = order.product_name?.toLowerCase().includes(search) ||
+                            order.product?.name?.toLowerCase().includes(search);
       const matchesSO = order.sales_order_code?.toLowerCase().includes(search);
       if (!matchesCode && !matchesProduct && !matchesSO) return false;
     }

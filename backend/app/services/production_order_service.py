@@ -896,6 +896,14 @@ def create_scrap_reason(
     if existing:
         raise HTTPException(status_code=400, detail=f"Scrap reason with code '{code}' already exists")
 
+    # Check for duplicate sequence
+    seq_conflict = db.query(ScrapReason).filter(ScrapReason.sequence == sequence).first()
+    if seq_conflict:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Sort order {sequence} is already used by '{seq_conflict.name}'"
+        )
+
     reason = ScrapReason(
         code=code,
         name=name,
@@ -926,6 +934,17 @@ def update_scrap_reason(
     if description is not None:
         reason.description = description
     if sequence is not None:
+        # Check for duplicate sequence (excluding this reason)
+        seq_conflict = (
+            db.query(ScrapReason)
+            .filter(ScrapReason.sequence == sequence, ScrapReason.id != reason_id)
+            .first()
+        )
+        if seq_conflict:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Sort order {sequence} is already used by '{seq_conflict.name}'"
+            )
         reason.sequence = sequence
     if active is not None:
         reason.active = active

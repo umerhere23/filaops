@@ -420,7 +420,7 @@ export default function AdminProduction() {
     const search = filters.search.toLowerCase();
     return (
       o.code?.toLowerCase().includes(search) ||
-      o.product?.name?.toLowerCase().includes(search) ||
+      o.product_name?.toLowerCase().includes(search) ||
       o.sales_order_code?.toLowerCase().includes(search)
     );
   });
