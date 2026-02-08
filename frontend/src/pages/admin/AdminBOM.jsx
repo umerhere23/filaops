@@ -69,10 +69,6 @@ export default function AdminBOM() {
         if (!res.ok) throw new Error("Failed to fetch BOM details");
 
         const data = await res.json();
-        // Debug: Log line data to check for material flags
-        if (data.lines && data.lines.length > 0) {
-          console.log("BOM Line data sample:", data.lines[0]);
-        }
         setSelectedBOM(data);
       } catch (err) {
         setError(`Failed to load BOM: ${err.message || "Unknown error"}`);

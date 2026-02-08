@@ -7,6 +7,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Frontend unit testing with Vitest + React Testing Library (56 component tests)
+- CI security audits: pip-audit and npm audit run on every push
+- Rate limiting on bulk import/export endpoints (30/minute)
+- Runtime API URL config for Docker via `window.__FILAOPS_CONFIG__`
+- Barrel exports (`index.js`) for 15 frontend component directories
+- Shared status color system (`statusColors.js`) for consistent badges
+- Comprehensive user guide covering all FilaOps modules
+- Deployment docs: Docker quickstart, prerequisites, troubleshooting
+- Backup and recovery documentation
+- API conventions documentation with response_model patterns
+
+### Changed
+- SQLAlchemy 2.0: replaced 33 deprecated `Query.get()` calls with `Session.get()`
+- CSS theming: auth pages and forms migrated to CSS custom properties
+- Form accessibility: proper labels, ARIA attributes, error announcements
+- Docker: non-root container user, correlation IDs in logs
+- Removed deprecated `Machine` model alias; use `Resource` from `manufacturing.py` directly
+- Expanded `.env.example` to cover all settings groups
+- Frontend: all 70+ components migrated from manual `Authorization` header to `credentials: "include"`
+
+### Fixed
+- Accounting rounding errors and BOM cost calculation bugs (#209, #211, #212)
+- Unicode checkmark crash in migration 039 on Windows (cp1252 encoding)
+- UI bugs and performance issues from walkthrough (#216)
+- Removed 10 debug console.log statements from production frontend code
+- Version sync between backend VERSION file and settings
+
 ### Security
 - **Auth tokens migrated from localStorage to httpOnly cookies** — prevents XSS token theft
   - All browser-based auth now uses httpOnly cookies with `SameSite=Lax`
@@ -18,11 +46,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Rate limiting added to token refresh endpoint (`10/minute`)
 - Rate limiting added to password reset approve/deny endpoints (`10/minute`)
 - Server-side refresh token revocation on logout
-
-### Changed
-- Removed deprecated `Machine` model alias; use `Resource` from `manufacturing.py` directly
-- Expanded `.env.example` to cover all settings groups
-- Frontend: all 70+ components migrated from manual `Authorization` header to `credentials: "include"`
 
 ## [3.0.1] - 2026-02-06
 

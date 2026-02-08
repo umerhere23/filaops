@@ -44,7 +44,7 @@ const UpdateNotification = () => {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
-      }).catch(() => console.log("Connection lost during upgrade (expected)"));
+      }).catch(() => {/* Connection loss expected during upgrade */});
       
       // Wait for upgrade to start
       await new Promise(resolve => setTimeout(resolve, 10000));

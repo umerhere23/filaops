@@ -23,17 +23,12 @@ export default function ScrapOrderModal({ productionOrder, onClose, onScrap }) {
   useEffect(() => {
     const fetchReasons = async () => {
       try {
-        console.log("Fetching scrap reasons from:", `${API_URL}/api/v1/production-orders/scrap-reasons`);
         const res = await fetch(`${API_URL}/api/v1/production-orders/scrap-reasons`, {
           credentials: "include",
         });
-        console.log("Scrap reasons response:", res.status, res.statusText);
         if (res.ok) {
           const data = await res.json();
-          // API returns { reasons: [], details: [], descriptions: {} }
-          console.log("Scrap reasons API response:", data);
           const reasons = data.details || data.reasons || [];
-          console.log("Parsed scrap reasons:", reasons);
           setScrapReasons(reasons);
           if (reasons.length === 0) {
             console.warn("No scrap reasons found in database");

@@ -81,20 +81,16 @@ export default function AdminPurchasing() {
 
     // Wait for products to load
     if (products.length === 0) {
-      console.log("[AdminPurchasing] Waiting for products to load...");
       return;
     }
 
     // Mark as processed BEFORE doing anything else
     createPOProcessedRef.current = true;
 
-    console.log(`[AdminPurchasing] Looking for product ID: ${productId} in ${products.length} products`);
-
     // Find the product in the products list
     const product = products.find(p => String(p.id) === String(productId));
 
     if (product) {
-      console.log(`[AdminPurchasing] Found product: ${product.sku}`);
 
       // Build initial items for the PO modal
       const initialItems = [{
@@ -309,7 +305,6 @@ export default function AdminPurchasing() {
       });
       if (res.ok) {
         const data = await res.json();
-        console.log(`[AdminPurchasing] Loaded ${data.items?.length || 0} products`);
         setProducts(data.items || []);
       } else {
         console.warn(`[AdminPurchasing] Failed to fetch products: ${res.status}`);
