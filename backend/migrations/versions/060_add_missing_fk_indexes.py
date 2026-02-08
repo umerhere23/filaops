@@ -15,7 +15,7 @@ from alembic import op
 
 
 revision = '060'
-down_revision = '059'
+down_revision = '059_reason_code'
 branch_labels = None
 depends_on = None
 

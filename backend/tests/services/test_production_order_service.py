@@ -1922,8 +1922,8 @@ class TestScrapReasonCRUD:
     def test_update_scrap_reason_sequence(self, db):
         """Should update sequence field."""
         reason = _make_scrap_reason(db, code="sr-upd-seq", name="SeqTest", sequence=0)
-        updated = svc.update_scrap_reason(db, reason.id, sequence=10)
-        assert updated.sequence == 10
+        updated = svc.update_scrap_reason(db, reason.id, sequence=9999)
+        assert updated.sequence == 9999
 
     def test_update_scrap_reason_active(self, db):
         """Should update active field (deactivate)."""
