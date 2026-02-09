@@ -21,11 +21,12 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy application code
 COPY . .
 
-# Create uploads directory and non-root user
-RUN mkdir -p /app/uploads \
+# Create directories and non-root user
+RUN mkdir -p /app/uploads /app/logs \
     && addgroup --system appgroup \
     && adduser --system --ingroup appgroup appuser \
-    && chown -R appuser:appgroup /app/uploads
+    && chown -R appuser:appgroup /app/uploads /app/logs \
+    && chmod -R a+rX /app
 
 EXPOSE 8000
 
