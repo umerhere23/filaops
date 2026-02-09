@@ -1,4 +1,4 @@
-﻿name: FilaOps CI
+name: FilaOps CI
 
 on:
   push:
@@ -100,7 +100,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Node 20
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: "20"
           cache: "npm"
