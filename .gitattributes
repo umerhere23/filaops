@@ -3,6 +3,10 @@
 
 # Shell scripts must always use LF (break on CRLF in Linux containers)
 *.sh text eol=lf
+*.bash text eol=lf
+
+# Env files — invisible \r breaks variable parsing in containers
+*.env* text eol=lf
 
 # Docker files
 Dockerfile text eol=lf
@@ -21,3 +25,7 @@ docker-compose*.yml text eol=lf
 *.woff2 binary
 *.ttf binary
 *.eot binary
+
+# 3D printing files
+*.stl binary
+*.3mf binary
