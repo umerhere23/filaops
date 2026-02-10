@@ -22,11 +22,13 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 
 # Create directories and non-root user
-RUN mkdir -p /app/uploads /app/logs \
+# sed strips Windows CRLF line endings that break shebangs on Linux
+RUN mkdir -p /app/uploads /app/logs /app/static/uploads/products \
     && addgroup --system appgroup \
     && adduser --system --ingroup appgroup appuser \
-    && chown -R appuser:appgroup /app/uploads /app/logs \
+    && chown -R appuser:appgroup /app/uploads /app/logs /app/static \
     && chmod -R a+rX /app \
+    && sed -i 's/\r$//' /app/scripts/docker-migrate.sh \
     && chmod +x /app/scripts/docker-migrate.sh
 
 EXPOSE 8000
