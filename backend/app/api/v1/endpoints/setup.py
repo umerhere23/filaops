@@ -4,6 +4,8 @@ First-run setup endpoint for FilaOps
 Allows creating the initial admin account when no users exist.
 This endpoint is disabled once any user has been created.
 """
+from datetime import timedelta
+
 from fastapi import APIRouter, HTTPException, Depends, Response
 from pydantic import BaseModel, EmailStr, Field
 from sqlalchemy.orm import Session
@@ -130,9 +132,20 @@ def create_initial_admin(
 
     if settings.AUTH_MODE.lower() == "cookie":
         set_auth_cookies(response, access_token)
+        # The full-duration token lives in the httpOnly cookie (not JS-accessible).
+        # The response body gets a short-lived token (5 min) for the onboarding
+        # wizard, which needs Authorization headers because httpOnly cookies are
+        # not reliably forwarded through nginx reverse proxies on immediate
+        # same-page requests.  5 minutes is enough for the wizard to complete,
+        # and this endpoint only works when zero users exist (line 85).
+        setup_token = create_access_token(
+            user_id=admin.id,
+            expires_delta=timedelta(minutes=5),
+        )
         return {
             "message": "Admin account created successfully! Welcome to FilaOps.",
             "email": admin.email,
+            "setup_token": setup_token,
             "token_type": "cookie",
         }
 

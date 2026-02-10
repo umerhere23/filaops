@@ -66,6 +66,10 @@ export default function Onboarding() {
   const [inventoryResult, setInventoryResult] = useState(null);
   const [importingInventory, setImportingInventory] = useState(false);
 
+  // Auth token from step 1 — used as Authorization header for subsequent steps
+  // (cookies alone are unreliable through nginx proxies in Docker)
+  const [setupToken, setSetupToken] = useState(null);
+
   useEffect(() => {
     checkSetupStatus();
     return () => {
@@ -156,12 +160,20 @@ export default function Onboarding() {
         throw new Error(data.detail || "Setup failed");
       }
 
+      // Save short-lived setup token (5 min) for subsequent wizard steps.
+      // The full-duration token is in the httpOnly cookie; this one is just
+      // for the wizard to use as an Authorization header through nginx.
+      const token = data.setup_token || data.access_token;
+      if (token) {
+        setSetupToken(token);
+      }
+
       // Fetch and store user data so AdminLayout knows the user is an admin
       try {
         const meRes = await fetch(`${API_URL}/api/v1/auth/me`, {
           credentials: "include",
-          headers: data.access_token
-            ? { Authorization: `Bearer ${data.access_token}` }
+          headers: token
+            ? { Authorization: `Bearer ${token}` }
             : {},
         });
         if (meRes.ok) {
@@ -194,8 +206,10 @@ export default function Onboarding() {
     try {
       const res = await fetch(`${API_URL}/api/v1/setup/seed-example-data`, {
         method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(setupToken ? { Authorization: `Bearer ${setupToken}` } : {}),
+        },
       });
 
       const data = await res.json();
@@ -229,7 +243,7 @@ export default function Onboarding() {
 
       const res = await fetch(`${API_URL}/api/v1/items/import`, {
         method: "POST",
-        credentials: "include",
+        headers: setupToken ? { Authorization: `Bearer ${setupToken}` } : {},
         body: formData,
       });
 
@@ -264,7 +278,7 @@ export default function Onboarding() {
 
       const res = await fetch(`${API_URL}/api/v1/admin/customers/import`, {
         method: "POST",
-        credentials: "include",
+        headers: setupToken ? { Authorization: `Bearer ${setupToken}` } : {},
         body: formData,
       });
 
@@ -305,7 +319,7 @@ export default function Onboarding() {
 
       const res = await fetch(url, {
         method: "POST",
-        credentials: "include",
+        headers: setupToken ? { Authorization: `Bearer ${setupToken}` } : {},
         body: formData,
       });
 
@@ -346,7 +360,7 @@ export default function Onboarding() {
 
       const res = await fetch(`${API_URL}/api/v1/admin/import/inventory`, {
         method: "POST",
-        credentials: "include",
+        headers: setupToken ? { Authorization: `Bearer ${setupToken}` } : {},
         body: formData,
       });
 
