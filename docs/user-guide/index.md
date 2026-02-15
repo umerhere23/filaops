@@ -1,67 +1,86 @@
 # FilaOps User Guide
 
-Welcome to the FilaOps User Guide. This documentation covers all modules of the FilaOps open-source ERP system for 3D print farm operations.
+Welcome to the FilaOps User Guide. Whether you're setting up for the first time or running a busy print farm, this manual walks you through every part of the system step by step.
 
-## Quick Start
+## Where to Start
 
-New to FilaOps? Start here:
+**New to FilaOps?** Follow this path:
 
-1. **[Getting Started](getting-started.md)** - Installation, setup, and your first sales order
+1. [Installation & Setup](installation.md) -- Get FilaOps running on your machine
+2. [Your First Day](first-day.md) -- Create your admin account, seed sample data, and explore
+3. [Understanding the Dashboard](dashboard.md) -- Learn what the home screen is telling you
 
-## Module Guides
+**Already running?** Jump to the section you need:
 
-| Guide | Description |
-|-------|-------------|
-| **[Getting Started](getting-started.md)** | Installation, database setup, first-time wizard, creating your first sales order |
-| **[Sales & Quotes](sales-and-quotes.md)** | Quote creation and approval, sales order lifecycle, customers, pricing, fulfillment |
-| **[Inventory Management](inventory-management.md)** | Items, stock levels, transactions, spool tracking, UOM system, cycle counting |
-| **[Manufacturing](manufacturing.md)** | Production orders, BOMs, routings, work centers, QC, scrap and rework |
-| **[Purchasing](purchasing.md)** | Vendors, purchase orders, receiving inventory, documents, cost tracking |
-| **[MRP](mrp.md)** | Material Requirements Planning, planned orders, firming, releasing, BOM explosion |
-| **[Printers & Fleet](printers-and-fleet.md)** | Multi-brand printer management, network discovery, MQTT monitoring, maintenance |
-| **[Accounting](accounting-module.md)** | General Ledger, journal entries, trial balance, COGS, tax reporting, fiscal periods |
-| **[Settings & Admin](settings-and-admin.md)** | Company settings, users, locations, materials, work centers, AI configuration |
+## Daily Operations
 
-## Typical Workflow
+These are the pages you'll use most. They cover the core work of running a 3D print farm.
 
+| Guide | What You'll Learn |
+|-------|-------------------|
+| [Managing Your Product Catalog](product-catalog.md) | Create items, set up BOMs, define routings, and organize your product line |
+| [Taking and Fulfilling Orders](orders.md) | Handle quotes, sales orders, customers, and the full order lifecycle |
+| [Running Production](production.md) | Create production orders, track operations, manage work centers, and record quality |
+| [Tracking Inventory](inventory.md) | Monitor stock levels, record transactions, track spools, and run cycle counts |
+| [Ordering Supplies](purchasing.md) | Manage vendors, create purchase orders, and receive inventory |
+| [Monitoring Your Printers](printers.md) | Connect printers via MQTT, monitor status, and schedule maintenance |
+
+## Planning & Finance
+
+| Guide | What You'll Learn |
+|-------|-------------------|
+| [Material Planning (MRP)](mrp.md) | Run MRP to detect shortages, generate planned orders, and firm them into real POs or production orders |
+| [Basic Accounting](accounting.md) | Review your sales journal, track payments and COGS, and prepare for tax time |
+
+## Administration
+
+| Guide | What You'll Learn |
+|-------|-------------------|
+| [Users & Permissions](users-and-permissions.md) | Add team members, assign roles, and review security logs |
+| [System Settings](system-settings.md) | Configure your company, locations, materials, scrap reasons, and system preferences |
+
+## Workflows & Recipes
+
+These end-to-end guides show how multiple modules work together for common tasks.
+
+| Workflow | Scenario |
+|----------|----------|
+| [Quote to Cash](workflows/quote-to-cash.md) | From customer inquiry through production to payment |
+| [New Product Launch](workflows/new-product-launch.md) | Setting up a new product with BOM, routing, pricing, and initial stock |
+| [Weekly Planning Cycle](workflows/weekly-planning.md) | Running MRP, reviewing shortages, and creating purchase orders |
+| [Month-End Close](workflows/month-end-close.md) | Reconciling sales, verifying inventory, and closing the books |
+| [Onboarding a Printer](workflows/onboarding-a-printer.md) | Adding a new printer to your fleet with MQTT monitoring |
+
+## Reference
+
+| Page | Contents |
+|------|----------|
+| [Troubleshooting](troubleshooting.md) | Common problems and how to fix them |
+| [Glossary](glossary.md) | Definitions of terms used throughout FilaOps |
+
+## How the Modules Connect
+
+```mermaid
+graph TD
+    A[Sales & Quotes] --> B[Production Orders]
+    B --> C[Inventory]
+    B --> D[Printers]
+    B --> E[MRP]
+    E --> F[Purchasing]
+    F --> C
+    C --> G[Accounting]
+    A --> G
+    F --> G
 ```
-1. Set Up (once)
-   Getting Started → Settings & Admin
 
-2. Daily Operations
-   Sales & Quotes → Manufacturing → Inventory → Purchasing
-
-3. Planning
-   MRP → Purchasing → Manufacturing
-
-4. Monitoring
-   Printers & Fleet → Manufacturing Dashboard
-
-5. Financial
-   Accounting → Tax Reporting → Month-End Close
-```
-
-## How Modules Connect
-
-```
-Sales & Quotes
-  └→ Manufacturing (production orders from sales orders)
-       ├→ Inventory (material consumption and finished goods)
-       ├→ Printers & Fleet (printer assignment and monitoring)
-       └→ MRP (material shortage detection)
-            └→ Purchasing (purchase orders from MRP)
-                 └→ Inventory (receiving updates stock)
-
-Accounting ← (automatic GL entries from all modules)
-Settings ← (configuration used by all modules)
-```
+Every module in FilaOps feeds data to the others. A sales order can trigger production, which consumes inventory, which MRP detects as a shortage, which generates a purchase order. Accounting records flow automatically from sales, purchasing, and inventory movements.
 
 ## Getting Help
 
-- **API Reference:** See `docs/API-REFERENCE.md`
-- **Issues:** [GitHub Issues](https://github.com/Blb3D/filaops/issues)
+- **Issues and feature requests:** [GitHub Issues](https://github.com/Blb3D/filaops/issues)
+- **API documentation:** See the [Developer Reference](../reference/index.md) section
 - **Contributing:** See `CONTRIBUTING.md` in the repository root
 
 ---
 
-*FilaOps v3.0.0 | February 2026*
+*FilaOps v3.1.0 | February 2026*

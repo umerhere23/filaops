@@ -10,7 +10,7 @@
 
     Install FilaOps, create your admin account, and run your first workflow in minutes.
 
-    [:octicons-arrow-right-24: Quick start](user-guide/getting-started.md)
+    [:octicons-arrow-right-24: Quick start](user-guide/installation.md)
 
 -   :material-book-open-variant:{ .lg .middle } **User Guide**
 

@@ -87,15 +87,31 @@ nav:
 
   - User Guide:
     - user-guide/index.md
-    - Getting Started: user-guide/getting-started.md
-    - Sales & Quotes: user-guide/sales-and-quotes.md
-    - Inventory Management: user-guide/inventory-management.md
-    - Manufacturing: user-guide/manufacturing.md
-    - Purchasing: user-guide/purchasing.md
-    - MRP: user-guide/mrp.md
-    - Printers & Fleet: user-guide/printers-and-fleet.md
-    - Accounting: user-guide/accounting-module.md
-    - Settings & Admin: user-guide/settings-and-admin.md
+    - Getting Started:
+      - Installation & Setup: user-guide/installation.md
+      - Your First Day: user-guide/first-day.md
+      - Understanding the Dashboard: user-guide/dashboard.md
+    - Daily Operations:
+      - Managing Your Product Catalog: user-guide/product-catalog.md
+      - Taking and Fulfilling Orders: user-guide/orders.md
+      - Running Production: user-guide/production.md
+      - Tracking Inventory: user-guide/inventory.md
+      - Ordering Supplies: user-guide/purchasing.md
+      - Monitoring Your Printers: user-guide/printers.md
+    - Planning & Finance:
+      - Material Planning (MRP): user-guide/mrp.md
+      - Basic Accounting: user-guide/accounting.md
+    - Administration:
+      - Users & Permissions: user-guide/users-and-permissions.md
+      - System Settings: user-guide/system-settings.md
+    - Workflows & Recipes:
+      - Quote to Cash: user-guide/workflows/quote-to-cash.md
+      - New Product Launch: user-guide/workflows/new-product-launch.md
+      - Weekly Planning Cycle: user-guide/workflows/weekly-planning.md
+      - Month-End Close: user-guide/workflows/month-end-close.md
+      - Onboarding a Printer: user-guide/workflows/onboarding-a-printer.md
+    - Troubleshooting: user-guide/troubleshooting.md
+    - Glossary: user-guide/glossary.md
 
   - Deployment:
     - deployment/index.md
