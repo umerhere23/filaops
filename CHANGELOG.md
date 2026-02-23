@@ -7,6 +7,43 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.1.1] - 2026-02-23
+
+### Fixed
+- Product `customer_id` foreign key now correctly references `customers` table (#338)
+- Stack trace exposure prevented in API error responses (#335)
+- PostgreSQL session timezone forced to UTC; naive DB datetimes handled correctly (#336)
+- Import reordering in `fulfillment_queue.py` for E402 compliance (#337)
+- Datetime deprecation warnings, auth cleanup, and frontend fixes (Session 13 code review)
+- Pre-push hook scoped to only block pushes to public repo
+
+### Security
+- Resolved 6 CodeQL security alerts and dismissed 5 false positives (#339)
+
+### Changed
+- Configurable database connection pool size (#338)
+- PRO code isolation safeguards added (#301)
+- Documentation site branded with BLB3D identity
+- User manual replaced developer reference documentation
+- README updated for v3.1.0 release (#300)
+
+### Dependencies
+- sqlalchemy 2.0.36 → 2.0.46 (#327)
+- pydantic-settings 2.12.0 → 2.13.0 (#325)
+- email-validator 2.2.0 → 2.3.0 (#318)
+- alembic 1.18.3 → 1.18.4 (#329)
+- reportlab 4.4.9 → 4.4.10 (#328)
+- types-python-dateutil updated (#322)
+- lucide-react 0.562.0 → 0.564.0 (#334)
+- eslint-plugin-react-refresh updated (#330)
+- @types/react 19.2.13 → 19.2.14 (#326)
+- actions/checkout 4 → 6 (#317)
+- actions/setup-python 5 → 6 (#319)
+- actions/upload-pages-artifact 3 → 4 (#320)
+- github/codeql-action 3 → 4 (#316)
+
+## [3.1.0] - 2026-02-12
+
 ### Added
 - Frontend unit testing with Vitest + React Testing Library (56 component tests)
 - CI security audits: pip-audit and npm audit run on every push
@@ -106,6 +143,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - AI Invoice Parser (PRO)
 - License management (PRO)
 
-[Unreleased]: https://github.com/Blb3D/filaops/compare/v3.0.1...HEAD
+[Unreleased]: https://github.com/Blb3D/filaops/compare/v3.1.1...HEAD
+[3.1.1]: https://github.com/Blb3D/filaops/compare/v3.1.0...v3.1.1
+[3.1.0]: https://github.com/Blb3D/filaops/compare/v3.0.1...v3.1.0
 [3.0.1]: https://github.com/Blb3D/filaops/compare/v3.0.0...v3.0.1
 [3.0.0]: https://github.com/Blb3D/filaops/releases/tag/v3.0.0
