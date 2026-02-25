@@ -366,8 +366,7 @@ export default function RoutingEditorContent({
         work_center_id: parseInt(newOperation.work_center_id),
         work_center_name: workCenter.name,
         work_center_code: workCenter.code,
-        labor_rate: workCenter.labor_rate || 0,
-        machine_rate: workCenter.machine_rate || 0,
+        hourly_rate: parseFloat(workCenter.total_rate_per_hour) || 0,
       },
     ]);
 
@@ -501,13 +500,9 @@ export default function RoutingEditorContent({
       return sum + parseFloat(op.calculated_cost);
     }
     // Fallback for newly-added operations not yet saved to backend
-    const setupCost =
-      ((parseFloat(op.setup_time_minutes) || 0) / 60) *
-      (parseFloat(op.labor_rate) || 0);
-    const runCost =
-      ((parseFloat(op.run_time_minutes) || 0) / 60) *
-      (parseFloat(op.labor_rate) || 0);
-    return sum + setupCost + runCost;
+    const totalMinutes = (parseFloat(op.setup_time_minutes) || 0) + (parseFloat(op.run_time_minutes) || 0);
+    const rate = parseFloat(op.hourly_rate) || 0;
+    return sum + (totalMinutes / 60) * rate;
   }, 0);
 
   const needsProductSelection =

@@ -127,7 +127,7 @@ export default function OperationRow({
             : (
                 (((parseFloat(op.setup_time_minutes) || 0) +
                   (parseFloat(op.run_time_minutes) || 0)) / 60) *
-                (parseFloat(op.labor_rate) || 0)
+                (parseFloat(op.hourly_rate) || 0)
               ).toFixed(2)}
         </td>
         <td className="border border-gray-700 p-2 text-center">
