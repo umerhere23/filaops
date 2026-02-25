@@ -114,7 +114,7 @@ async def get_maintenance_due(
     - Overdue maintenance (next_due_at in the past)
     - Upcoming maintenance (next_due_at within next N days)
     """
-    now = datetime.now(timezone.utc)
+    now = datetime.now(timezone.utc).replace(tzinfo=None)
     future_date = now + timedelta(days=days_ahead)
 
     # Get all active printers

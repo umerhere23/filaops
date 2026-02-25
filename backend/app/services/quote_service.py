@@ -80,7 +80,7 @@ def list_quotes(
 
 def get_quote_stats(db: Session) -> dict:
     """Get quote statistics for dashboard."""
-    now = datetime.now(timezone.utc)
+    now = datetime.now(timezone.utc).replace(tzinfo=None)
 
     total = db.query(Quote).count()
     pending = db.query(Quote).filter(Quote.status == "pending").count()
@@ -365,7 +365,7 @@ def update_quote_status(db: Session, quote_id: int, request, current_user_id: in
     quote.status = request.status
 
     if request.status == "approved":
-        quote.approved_at = datetime.now(timezone.utc)
+        quote.approved_at = datetime.now(timezone.utc).replace(tzinfo=None)
         quote.approved_by = current_user_id
         quote.approval_method = "manual"
 
