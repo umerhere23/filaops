@@ -121,12 +121,14 @@ export default function OperationRow({
             className="w-20 text-right bg-gray-800 border border-gray-700 rounded px-2 py-1 text-white"
           />
         </td>
-        <td className="border border-gray-700 p-2 text-right text-white">
-          ${(
-            (((parseFloat(op.setup_time_minutes) || 0) +
-              (parseFloat(op.run_time_minutes) || 0)) / 60) *
-            (parseFloat(op.labor_rate) || 0)
-          ).toFixed(2)}
+        <td className="border border-gray-700 p-2 text-right text-green-400">
+          ${op.calculated_cost != null
+            ? parseFloat(op.calculated_cost).toFixed(2)
+            : (
+                (((parseFloat(op.setup_time_minutes) || 0) +
+                  (parseFloat(op.run_time_minutes) || 0)) / 60) *
+                (parseFloat(op.labor_rate) || 0)
+              ).toFixed(2)}
         </td>
         <td className="border border-gray-700 p-2 text-center">
           <div className="flex items-center justify-center gap-2">
@@ -179,10 +181,15 @@ export default function OperationRow({
                         <span className="text-gray-400">{mat.component_name}</span>
                       </div>
                       <div className="flex items-center gap-4 text-gray-400">
-                        <span>{mat.quantity_per} {mat.unit}</span>
+                        <span>{mat.quantity} {mat.unit}</span>
                         <span className="text-xs text-gray-500">
-                          {mat.quantity_type === 'per_unit' ? '/unit' : mat.quantity_type === 'per_batch' ? '/batch' : '/order'}
+                          /{mat.quantity_per}
                         </span>
+                        {parseFloat(mat.extended_cost || 0) > 0 && (
+                          <span className="text-green-400">
+                            ${parseFloat(mat.extended_cost).toFixed(4)}
+                          </span>
+                        )}
                         {mat.is_optional && (
                           <span className="text-xs px-1.5 py-0.5 bg-yellow-500/20 text-yellow-400 rounded">optional</span>
                         )}

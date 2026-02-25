@@ -497,6 +497,10 @@ export default function RoutingEditorContent({
     0
   );
   const totalCost = operations.reduce((sum, op) => {
+    if (op.calculated_cost != null) {
+      return sum + parseFloat(op.calculated_cost);
+    }
+    // Fallback for newly-added operations not yet saved to backend
     const setupCost =
       ((parseFloat(op.setup_time_minutes) || 0) / 60) *
       (parseFloat(op.labor_rate) || 0);
