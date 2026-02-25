@@ -67,7 +67,7 @@ async def approve_negative_inventory(
     transaction.requires_approval = False
     transaction.approval_reason = approval_reason
     transaction.approved_by = current_user.email if current_user else "system"
-    transaction.approved_at = datetime.now(timezone.utc)
+    transaction.approved_at = datetime.now(timezone.utc).replace(tzinfo=None)
     transaction.transaction_type = "negative_adjustment"
     
     # Now apply the inventory change (check original type to determine if it's a consumption)

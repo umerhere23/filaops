@@ -228,8 +228,9 @@ def _get_overrunning_operations(db: Session) -> List[ActionItem]:
     ).all()
 
     for op in running_ops:
-        # Calculate elapsed time
-        elapsed_minutes = (now - op.actual_start).total_seconds() / 60
+        # Calculate elapsed time (handle naive datetimes from DateTime columns)
+        start = op.actual_start.replace(tzinfo=timezone.utc) if op.actual_start.tzinfo is None else op.actual_start
+        elapsed_minutes = (now - start).total_seconds() / 60
         planned_minutes = float(op.planned_setup_minutes or 0) + float(op.planned_run_minutes or 0)
 
         # Only alert if running >2x planned time (and planned > 0)

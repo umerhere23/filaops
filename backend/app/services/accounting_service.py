@@ -569,7 +569,7 @@ def close_fiscal_period(
 
     # Close the period
     period.status = "closed"
-    period.closed_at = datetime.now(timezone.utc)
+    period.closed_at = datetime.now(timezone.utc).replace(tzinfo=None)
     period.closed_by = admin_id
     db.commit()
 

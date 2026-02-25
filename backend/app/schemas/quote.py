@@ -148,7 +148,9 @@ class QuoteResponse(BaseModel):
     @property
     def is_expired(self) -> bool:
         """Check if quote has expired"""
-        return datetime.now(timezone.utc) > self.expires_at
+        now = datetime.now(timezone.utc).replace(tzinfo=None)
+        expires = self.expires_at.replace(tzinfo=None) if self.expires_at and self.expires_at.tzinfo else self.expires_at
+        return now > expires
 
     @property
     def file_size_mb(self) -> float:
@@ -179,7 +181,9 @@ class QuoteListResponse(BaseModel):
     @property
     def is_expired(self) -> bool:
         """Check if quote has expired"""
-        return datetime.now(timezone.utc) > self.expires_at
+        now = datetime.now(timezone.utc).replace(tzinfo=None)
+        expires = self.expires_at.replace(tzinfo=None) if self.expires_at and self.expires_at.tzinfo else self.expires_at
+        return now > expires
 
 
 class QuoteUpdateStatus(BaseModel):

@@ -232,7 +232,7 @@ async def login_user(
         # Purge expired/revoked tokens for this user to prevent table bloat
         db.query(RefreshToken).filter(
             RefreshToken.user_id == user.id,
-            (RefreshToken.revoked.is_(True)) | (RefreshToken.expires_at < datetime.now(timezone.utc)),
+            (RefreshToken.revoked.is_(True)) | (RefreshToken.expires_at < datetime.now(timezone.utc).replace(tzinfo=None)),
         ).delete(synchronize_session=False)
 
         db.commit()
@@ -333,7 +333,7 @@ async def refresh_access_token(
     # Purge expired/revoked tokens for this user to prevent table bloat
     db.query(RefreshToken).filter(
         RefreshToken.user_id == user.id,
-        (RefreshToken.revoked.is_(True)) | (RefreshToken.expires_at < datetime.now(timezone.utc)),
+        (RefreshToken.revoked.is_(True)) | (RefreshToken.expires_at < datetime.now(timezone.utc).replace(tzinfo=None)),
     ).delete(synchronize_session=False)
 
     db.commit()
@@ -501,8 +501,8 @@ async def request_password_reset(
     else:
         # Email not configured - auto-approve and return reset link directly
         reset_request.status = 'approved'  # type: ignore[assignment]
-        reset_request.approved_at = datetime.now(timezone.utc)  # type: ignore[assignment]
-        reset_request.expires_at = datetime.now(timezone.utc) + timedelta(hours=24)  # type: ignore[assignment] # 24 hours to use
+        reset_request.approved_at = datetime.now(timezone.utc).replace(tzinfo=None)  # type: ignore[assignment]
+        reset_request.expires_at = (datetime.now(timezone.utc) + timedelta(hours=24)).replace(tzinfo=None)  # type: ignore[assignment] # 24 hours to use
         db.commit()
         
         # Use relative URL - frontend will construct full URL
@@ -574,9 +574,9 @@ async def approve_password_reset(
 
     # Approve the request
     reset_request.status = 'approved'  # type: ignore[assignment]
-    reset_request.approved_at = datetime.now(timezone.utc)  # type: ignore[assignment]
+    reset_request.approved_at = datetime.now(timezone.utc).replace(tzinfo=None)  # type: ignore[assignment]
     # Extend expiry for 1 hour after approval for user to complete reset
-    reset_request.expires_at = datetime.now(timezone.utc) + timedelta(hours=1)  # type: ignore[assignment]
+    reset_request.expires_at = (datetime.now(timezone.utc) + timedelta(hours=1)).replace(tzinfo=None)  # type: ignore[assignment]
     db.commit()
 
     # Send reset link to user

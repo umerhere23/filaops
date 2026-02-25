@@ -444,7 +444,10 @@ def complete_operation(
     if actual_run_minutes is not None:
         op.actual_run_minutes = actual_run_minutes
     elif op.actual_start:
-        elapsed = datetime.now(timezone.utc) - op.actual_start
+        # actual_start is stored as naive UTC (DateTime column); attach tzinfo
+        # so the subtraction with an aware datetime works
+        start = op.actual_start.replace(tzinfo=timezone.utc) if op.actual_start.tzinfo is None else op.actual_start
+        elapsed = datetime.now(timezone.utc) - start
         op.actual_run_minutes = int(elapsed.total_seconds() / 60)
 
     if notes:
