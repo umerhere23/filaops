@@ -680,6 +680,7 @@ def generate_quote_pdf(db: Session, quote_id: int) -> io.BytesIO:
 
     def _fmt(amount: float) -> str:
         """Format a monetary amount with the company currency symbol."""
+        # TODO: zero-decimal currencies (JPY, KRW) should use :,.0f — add when going international
         return f"{_sym}{amount:,.2f}"
 
     # Create PDF buffer
