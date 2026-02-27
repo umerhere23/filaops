@@ -15,6 +15,7 @@
  */
 import { createContext, useContext, useState, useEffect, useMemo, useCallback } from "react";
 import { API_URL } from "../config/api";
+import { setLocaleDefaults } from "../lib/number";
 
 const DEFAULTS = { currency_code: "USD", locale: "en-US" };
 
@@ -30,10 +31,10 @@ export function LocaleProvider({ children }) {
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
         if (cancelled || !data) return;
-        setSettings({
-          currency_code: data.currency_code || DEFAULTS.currency_code,
-          locale: data.locale || DEFAULTS.locale,
-        });
+        const currency_code = data.currency_code || DEFAULTS.currency_code;
+        const locale = data.locale || DEFAULTS.locale;
+        setLocaleDefaults(currency_code, locale); // sync module-level defaults for non-hook code
+        setSettings({ currency_code, locale });
       })
       .catch(() => {
         // Unauthenticated or network error — keep defaults
@@ -45,7 +46,11 @@ export function LocaleProvider({ children }) {
   }, []);
 
   const updateLocaleSettings = useCallback((patch) => {
-    setSettings((prev) => ({ ...prev, ...patch }));
+    setSettings((prev) => {
+      const next = { ...prev, ...patch };
+      setLocaleDefaults(next.currency_code, next.locale); // keep module-level in sync
+      return next;
+    });
   }, []);
 
   const value = useMemo(

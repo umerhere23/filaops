@@ -3,6 +3,22 @@
  * Avoids locale pitfalls and floating drift in UI calcs.
  */
 
+/**
+ * Ambient locale defaults — set once at app init by LocaleContext.
+ * Allows non-hook code (module-level functions, production modals) to pick
+ * up the company locale without requiring React context.
+ *
+ * Call setLocaleDefaults(currency, locale) from LocaleContext when settings load.
+ */
+let _defaultCurrency = "USD";
+let _defaultLocale = "en-US";
+
+/** Set module-level defaults. Called by LocaleContext after settings fetch. */
+export function setLocaleDefaults(currency, locale) {
+  _defaultCurrency = currency || "USD";
+  _defaultLocale = locale || "en-US";
+}
+
 /** @param {string|number|null|undefined} v */
 export function parseDecimal(v) {
   if (v === null || v === undefined) return null;
@@ -25,8 +41,12 @@ export function toFixedSafe(n, digits = 2) {
   return String(Math.round(n * factor) / factor);
 }
 
-/** @param {number|null|undefined} n */
-export function formatCurrency(n, currency = "USD", locale = "en-US") {
+/**
+ * @param {number|null|undefined} n
+ * @param {string} [currency] — defaults to company currency (set by setLocaleDefaults)
+ * @param {string} [locale] — defaults to company locale (set by setLocaleDefaults)
+ */
+export function formatCurrency(n, currency = _defaultCurrency, locale = _defaultLocale) {
   if (n === null || n === undefined || !Number.isFinite(n)) return "";
   return new Intl.NumberFormat(locale, {
     style: "currency",
