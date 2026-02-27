@@ -5,6 +5,7 @@
 import { useState, useEffect } from "react";
 import { API_URL } from "../../config/api";
 import { ErrorAlert, TableSkeleton, CardSkeleton, HelpIcon } from "./AccountingShared";
+import { useFormatCurrency } from "../../hooks/useFormatCurrency";
 
 export default function GLReportsTab() {
   const [activeReport, setActiveReport] = useState("trial-balance");
@@ -93,12 +94,7 @@ export default function GLReportsTab() {
     if (activeReport === "inventory") fetchInventoryValuation();
   }, [activeReport]);
 
-  const formatCurrency = (amount) => {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD",
-    }).format(amount || 0);
-  };
+  const formatCurrency = useFormatCurrency();
 
   return (
     <div className="space-y-4">

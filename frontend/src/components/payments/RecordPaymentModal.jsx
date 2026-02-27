@@ -12,6 +12,7 @@ import { useState, useEffect, useCallback } from "react";
 import { API_URL } from "../../config/api";
 import { useToast } from "../Toast";
 import Modal from "../Modal";
+import { useFormatCurrency } from "../../hooks/useFormatCurrency";
 
 const paymentMethods = [
   { value: "cash", label: "Cash" },
@@ -210,12 +211,7 @@ export default function RecordPaymentModal({
     }
   };
 
-  const formatCurrency = (amount) => {
-    return parseFloat(amount || 0).toLocaleString("en-US", {
-      style: "currency",
-      currency: "USD",
-    });
-  };
+  const formatCurrency = useFormatCurrency();
 
   // Filter orders based on search
   const filteredOrders = orders.filter((order) => {

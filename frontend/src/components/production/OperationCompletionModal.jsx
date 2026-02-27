@@ -10,18 +10,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { API_URL } from '../../config/api';
 import { useToast } from '../Toast';
 import Modal from '../Modal';
-
-/**
- * Format currency value
- */
-function formatCurrency(value) {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(value || 0);
-}
+import { formatCurrency } from '../../lib/number';
 
 /**
  * Cascading materials summary (collapsed view)

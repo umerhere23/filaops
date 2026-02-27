@@ -4,6 +4,7 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 import { useState, useEffect } from "react";
 import { API_URL } from "../../config/api";
+import { useFormatCurrency } from "../../hooks/useFormatCurrency";
 
 export default function DashboardTab() {
   const [data, setData] = useState(null);
@@ -61,12 +62,7 @@ export default function DashboardTab() {
     );
   }
 
-  const formatCurrency = (amount) => {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD",
-    }).format(amount || 0);
-  };
+  const formatCurrency = useFormatCurrency();
 
   // Check if there's no shipped orders yet (common for new installations)
   const hasNoShippedOrders = data?.revenue?.mtd_orders === 0 && data?.revenue?.ytd_orders === 0;

@@ -1,6 +1,8 @@
 import { useState, useRef } from "react";
+import { useLocale } from "../../contexts/LocaleContext";
 
 export default function SalesChart({ data, period, onPeriodChange, loading }) {
+  const { currency_code, locale } = useLocale();
   const [hoveredIndex, setHoveredIndex] = useState(null);
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
   const [chartWidth, setChartWidth] = useState(300);
@@ -141,10 +143,13 @@ export default function SalesChart({ data, period, onPeriodChange, loading }) {
     return `M 0,100 L ${points.join(" L ")} L 100,100 Z`;
   };
 
-  const formatCurrency = (value) => {
-    if (value >= 1000) return `$${(value / 1000).toFixed(1)}k`;
-    return `$${value.toFixed(0)}`;
-  };
+  const formatCurrency = (value) =>
+    new Intl.NumberFormat(locale, {
+      style: "currency",
+      currency: currency_code,
+      notation: "compact",
+      maximumFractionDigits: 1,
+    }).format(value);
 
   // Handle mouse move for tooltip positioning
   const handleMouseMove = (e, index) => {

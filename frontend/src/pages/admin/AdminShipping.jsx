@@ -1,4 +1,6 @@
 import { useState, useEffect, useRef } from "react";
+import { useFormatCurrency } from "../../hooks/useFormatCurrency";
+import { useLocale } from "../../contexts/LocaleContext";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { useApi } from "../../hooks/useApi";
 import { useToast } from "../../components/Toast";
@@ -6,6 +8,7 @@ import { API_URL } from "../../config/api";
 
 // Shipping Trend Chart Component
 function ShippingChart({ data, period, onPeriodChange, loading }) {
+  const { currency_code, locale } = useLocale();
   const [hoveredIndex, setHoveredIndex] = useState(null);
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
   const [chartWidth, setChartWidth] = useState(300);
@@ -84,10 +87,13 @@ function ShippingChart({ data, period, onPeriodChange, loading }) {
     return `M ${points.join(" L ")}`;
   };
 
-  const formatCurrency = (value) => {
-    if (value >= 1000) return `$${(value / 1000).toFixed(1)}k`;
-    return `$${value.toFixed(0)}`;
-  };
+  const formatCurrency = (value) =>
+    new Intl.NumberFormat(locale, {
+      style: "currency",
+      currency: currency_code,
+      notation: "compact",
+      maximumFractionDigits: 1,
+    }).format(value);
 
   const handleMouseMove = (e, index) => {
     if (chartRef.current) {
@@ -304,6 +310,7 @@ const sortByDueDate = (orders) => {
 
 export default function AdminShipping() {
   const api = useApi();
+  const formatCurrency = useFormatCurrency();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const toast = useToast();
@@ -534,7 +541,6 @@ export default function AdminShipping() {
     }
   };
 
-  const formatCurrency = (val) => `$${parseFloat(val || 0).toFixed(2)}`;
 
   return (
     <div className="space-y-4">

@@ -6,6 +6,7 @@ import { useState, useEffect } from "react";
 import { API_URL } from "../../config/api";
 import { useToast } from "../Toast";
 import { ErrorAlert, Skeleton, TableSkeleton, HelpIcon } from "./AccountingShared";
+import { useFormatCurrency } from "../../hooks/useFormatCurrency";
 
 export default function PeriodsTab() {
   const [periods, setPeriods] = useState([]);
@@ -98,12 +99,7 @@ export default function PeriodsTab() {
     }
   };
 
-  const formatCurrency = (amount) => {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD",
-    }).format(amount || 0);
-  };
+  const formatCurrency = useFormatCurrency();
 
   if (loading) {
     return (

@@ -4,8 +4,10 @@
  * Extracted from AdminPurchasing.jsx (ARCHITECT-002)
  */
 import { useState, useRef } from "react";
+import { useLocale } from "../../contexts/LocaleContext";
 
 export default function PurchasingChart({ data, period, onPeriodChange, loading }) {
+  const { currency_code, locale } = useLocale();
   const [hoveredIndex, setHoveredIndex] = useState(null);
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
   const [chartWidth, setChartWidth] = useState(300);
@@ -83,10 +85,13 @@ export default function PurchasingChart({ data, period, onPeriodChange, loading 
     return `M ${points.join(" L ")}`;
   };
 
-  const formatCurrency = (value) => {
-    if (value >= 1000) return `$${(value / 1000).toFixed(1)}k`;
-    return `$${value.toFixed(0)}`;
-  };
+  const formatCurrency = (value) =>
+    new Intl.NumberFormat(locale, {
+      style: "currency",
+      currency: currency_code,
+      notation: "compact",
+      maximumFractionDigits: 1,
+    }).format(value);
 
   const handleMouseMove = (e, index) => {
     if (chartRef.current) {

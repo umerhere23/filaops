@@ -7,6 +7,7 @@ import { useState, useEffect } from "react";
 import { API_URL } from "../../config/api";
 import Modal from "../Modal";
 import { useFeatureFlags } from "../../hooks/useFeatureFlags";
+import { useFormatCurrency } from "../../hooks/useFormatCurrency";
 
 // B2B Portal Settings Tab Component (Community Edition - Read Only)
 function PortalSettingsTab({ customerId: _customerId, portalDetails, loading, onRefresh: _onRefresh }) {
@@ -89,6 +90,7 @@ function PortalSettingsTab({ customerId: _customerId, portalDetails, loading, on
 
 export default function CustomerDetailsModal({ customer, onClose, onEdit }) {
   const { isPro } = useFeatureFlags();
+  const formatCurrency = useFormatCurrency();
   const [activeTab, setActiveTab] = useState("overview");
   const [orders, setOrders] = useState([]);
   const [loadingOrders, setLoadingOrders] = useState(true);
@@ -215,10 +217,7 @@ export default function CustomerDetailsModal({ customer, onClose, onEdit }) {
                 <div className="bg-gray-800/50 rounded-lg p-4">
                   <p className="text-gray-400 text-sm">Total Spent</p>
                   <p className="text-2xl font-bold text-emerald-400">
-                    $
-                    {parseFloat(customer.total_spent || 0).toLocaleString("en-US", {
-                      minimumFractionDigits: 2,
-                    })}
+                    {formatCurrency(customer.total_spent || 0)}
                   </p>
                 </div>
                 <div className="bg-gray-800/50 rounded-lg p-4">

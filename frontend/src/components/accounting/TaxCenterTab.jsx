@@ -4,6 +4,7 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 import { useState, useEffect } from "react";
 import { API_URL } from "../../config/api";
+import { useFormatCurrency } from "../../hooks/useFormatCurrency";
 
 export default function TaxCenterTab() {
   const [data, setData] = useState(null);
@@ -71,12 +72,7 @@ export default function TaxCenterTab() {
     }
   };
 
-  const formatCurrency = (amount) => {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD",
-    }).format(amount || 0);
-  };
+  const formatCurrency = useFormatCurrency();
 
   if (loading) {
     return (

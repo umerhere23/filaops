@@ -13,6 +13,7 @@ import { useApi } from "../../hooks/useApi";
 import { useToast } from "../../components/Toast";
 import RecordPaymentModal from "../../components/payments/RecordPaymentModal";
 import { PAYMENT_COLORS as statusColors } from "../../lib/statusColors.js";
+import { useFormatCurrency } from "../../hooks/useFormatCurrency";
 
 // Payment method display
 const paymentMethodLabels = {
@@ -127,10 +128,7 @@ export default function AdminPayments() {
     toast.success(isRefund ? "Refund recorded" : "Payment recorded");
   };
 
-  const formatCurrency = (amount) => {
-    const num = parseFloat(amount || 0);
-    return num.toLocaleString("en-US", { style: "currency", currency: "USD" });
-  };
+  const formatCurrency = useFormatCurrency();
 
   const formatDate = (dateStr) => {
     if (!dateStr) return "—";

@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useFormatCurrency } from "../../hooks/useFormatCurrency";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { useApi } from "../../hooks/useApi";
 import { useCRUD } from "../../hooks/useCRUD";
@@ -10,6 +11,7 @@ import CustomerDetailsModal from "../../components/customers/CustomerDetailsModa
 import ImportCSVModal from "../../components/customers/ImportCSVModal";
 
 export default function AdminCustomers() {
+  const formatCurrency = useFormatCurrency();
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const toast = useToast();
@@ -178,7 +180,7 @@ export default function AdminCustomers() {
         <StatCard
           variant="simple"
           title="Total Revenue"
-          value={`$${stats.totalRevenue.toLocaleString("en-US", { minimumFractionDigits: 2 })}`}
+          value={formatCurrency(stats.totalRevenue)}
           color="primary"
         />
       </div>
