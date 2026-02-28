@@ -10,6 +10,7 @@ export default function DashboardTab() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const formatCurrency = useFormatCurrency(); // must be before any early returns
 
   useEffect(() => {
     fetchDashboard();
@@ -61,8 +62,6 @@ export default function DashboardTab() {
       </div>
     );
   }
-
-  const formatCurrency = useFormatCurrency();
 
   // Check if there's no shipped orders yet (common for new installations)
   const hasNoShippedOrders = data?.revenue?.mtd_orders === 0 && data?.revenue?.ytd_orders === 0;

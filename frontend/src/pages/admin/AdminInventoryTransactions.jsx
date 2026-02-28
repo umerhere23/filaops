@@ -1,9 +1,11 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useApi } from "../../hooks/useApi";
+import { useFormatCurrency } from "../../hooks/useFormatCurrency";
 
 export default function AdminInventoryTransactions() {
   const api = useApi();
+  const formatCurrency = useFormatCurrency();
   const [transactions, setTransactions] = useState([]);
   const [products, setProducts] = useState([]);
   const [locations, setLocations] = useState([]);
@@ -580,13 +582,13 @@ export default function AdminInventoryTransactions() {
                     <td className="py-3 px-4 text-gray-400">
                       {/* SINGLE SOURCE OF TRUTH: Display stored cost_per_unit with unit */}
                       {txn.cost_per_unit
-                        ? "$" + parseFloat(txn.cost_per_unit).toFixed(4) + "/" + (txn.unit || "EA")
+                        ? formatCurrency(parseFloat(txn.cost_per_unit)) + "/" + (txn.unit || "EA")
                         : "-"}
                     </td>
                     <td className="py-3 px-4 text-white font-medium">
                       {/* SINGLE SOURCE OF TRUTH: Display stored total_cost directly - NO client-side math */}
                       {txn.total_cost != null
-                        ? "$" + parseFloat(txn.total_cost).toFixed(2)
+                        ? formatCurrency(parseFloat(txn.total_cost))
                         : "-"}
                     </td>
                     <td className="py-3 px-4 text-gray-500 text-xs">
