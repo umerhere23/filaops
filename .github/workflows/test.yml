@@ -121,10 +121,10 @@ jobs:
           cd frontend
           npm run lint -- --max-warnings 50 || echo "Lint warnings present - not blocking during active development"
 
-      - name: Run frontend component tests (if exists)
+      - name: Run frontend unit tests
         run: |
           cd frontend
-          # npm test -- --coverage || echo "No component tests yet"
+          npm run test:unit
 
   # E2E Tests - Disabled during active development
   e2e-tests:

@@ -23,6 +23,7 @@
     "test:walkthrough": "playwright test --project=walkthrough",
     "test:report": "playwright show-report",
     "test": "vitest run",
+    "test:unit": "vitest run --config vitest.unit.config.js",
     "test:watch": "vitest",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build"
