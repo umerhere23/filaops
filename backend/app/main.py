@@ -310,32 +310,27 @@ async def health_check():
 
 
 # ─── Optional plugin registration (config-driven) ───
-# If FILAOPS_LICENSE_KEY is set and filaops_pro is installed (auto-downloaded
-# by the entrypoint script), load and register it. One env var does everything.
-# Removing the env var = Community edition. No code changes needed.
+# Core contains zero package references to any plugin. The operator sets
+# FILAOPS_PRO_MODULE=filaops_pro (or any module with a register(app) callable)
+# in .env to activate a plugin. Removing the env var = Community edition.
+# The docker-entrypoint.sh sets this automatically when FILAOPS_LICENSE_KEY
+# is present, so customers only need to set the license key.
 
 
 def load_plugin(app, module_name: str | None = None) -> bool:
     """Load and register an optional plugin module.
 
-    Auto-detects filaops_pro if FILAOPS_LICENSE_KEY is set.
-    Also supports explicit FILAOPS_PRO_MODULE for custom plugins.
-
     Args:
         app: The FastAPI application instance.
-        module_name: Dotted Python module path. If None, auto-detects
-            from FILAOPS_LICENSE_KEY or FILAOPS_PRO_MODULE env vars.
+        module_name: Dotted Python module path (e.g. "filaops_pro").
+            If None, reads from FILAOPS_PRO_MODULE env var.
 
     Returns:
         True if a plugin was loaded successfully, False otherwise.
     """
     import importlib
 
-    # Auto-detect: if license key is set, try filaops_pro
     module_name = module_name or os.getenv("FILAOPS_PRO_MODULE")
-    if not module_name and os.getenv("FILAOPS_LICENSE_KEY"):
-        module_name = "filaops_pro"
-
     if not module_name:
         return False
     try:

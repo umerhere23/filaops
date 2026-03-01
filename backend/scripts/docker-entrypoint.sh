@@ -1,13 +1,11 @@
 #!/bin/bash
 # docker-entrypoint.sh — Container startup script.
-# Handles PRO plugin auto-download, then runs the given command.
+# Bridges the license key to the generic plugin system:
+#   FILAOPS_LICENSE_KEY → download wheel → set FILAOPS_PRO_MODULE
 #
-# Used by both the backend and migrate services:
-#   backend:  entrypoint runs → downloads PRO → starts uvicorn
-#   migrate:  entrypoint runs → downloads PRO → runs migration script
-#
-# This runs at container START (every time), not at build time.
-# No Docker rebuild needed to add or remove PRO.
+# Core's Python code only reads FILAOPS_PRO_MODULE (generic).
+# This shell script is the only place that knows about the license
+# server URL and PRO-specific download logic.
 
 set -e
 
@@ -29,11 +27,14 @@ if [ -n "$FILAOPS_LICENSE_KEY" ]; then
             echo "FilaOps: Starting in Community mode."
         fi
     fi
+
+    # Bridge: set the generic plugin env var so Core's load_plugin finds it
+    if python -c "import filaops_pro" 2>/dev/null; then
+        export FILAOPS_PRO_MODULE=filaops_pro
+    fi
 fi
 
 # ─── Run Command ───
-# If arguments were passed (e.g. from docker-compose command:), run them.
-# Otherwise start the default uvicorn server as non-root.
 if [ $# -gt 0 ]; then
     exec "$@"
 else

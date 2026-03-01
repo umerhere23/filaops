@@ -33,8 +33,9 @@ services:
       DB_USER: ${DB_USER:-postgres}
       DB_PASSWORD: ${DB_PASSWORD:-changeme}
       SECRET_KEY: ${SECRET_KEY:-change-in-production}
-      # PRO — set FILAOPS_LICENSE_KEY in .env to auto-download and activate
+      # PRO — entrypoint uses this to auto-download the plugin
       FILAOPS_LICENSE_KEY: ${FILAOPS_LICENSE_KEY:-}
+      LICENSE_SERVER_URL: ${LICENSE_SERVER_URL:-}
       DATABASE_URL: postgresql+psycopg://${DB_USER:-postgres}:${DB_PASSWORD:-changeme}@db:5432/${DB_NAME:-filaops}
     depends_on:
       db:
@@ -61,8 +62,9 @@ services:
       ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost}
       FRONTEND_URL: ${FRONTEND_URL:-http://localhost}
       FILAOPS_VERSION: ${FILAOPS_VERSION:-}
-      # PRO — set FILAOPS_LICENSE_KEY in .env to auto-download and activate
+      # PRO — entrypoint uses this to auto-download the plugin
       FILAOPS_LICENSE_KEY: ${FILAOPS_LICENSE_KEY:-}
+      LICENSE_SERVER_URL: ${LICENSE_SERVER_URL:-}
     depends_on:
       migrate:
         condition: service_completed_successfully
