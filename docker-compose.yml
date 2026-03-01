@@ -57,6 +57,7 @@ services:
       ENVIRONMENT: ${ENVIRONMENT:-development}
       ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost}
       FRONTEND_URL: ${FRONTEND_URL:-http://localhost}
+      FILAOPS_VERSION: ${FILAOPS_VERSION:-}
     depends_on:
       migrate:
         condition: service_completed_successfully
