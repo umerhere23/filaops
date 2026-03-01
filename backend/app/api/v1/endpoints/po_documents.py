@@ -33,7 +33,7 @@ router = APIRouter()
 logger = get_logger(__name__)
 
 # Upload directory for local storage
-UPLOAD_DIR = os.path.join("uploads", "po_documents")
+UPLOAD_DIR = "/app/uploads/po_documents"
 
 
 def _ensure_upload_dir():
