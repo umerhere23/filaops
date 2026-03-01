@@ -1,7 +1,11 @@
 #!/bin/bash
 # docker-entrypoint.sh — Container startup script.
-# Downloads PRO plugin if license key is set, then delegates to
-# the Python entrypoint which reliably sets env vars before exec.
+# Bridges the license key to the generic plugin system:
+#   FILAOPS_LICENSE_KEY → download wheel → set FILAOPS_PRO_MODULE
+#
+# Core's Python code only reads FILAOPS_PRO_MODULE (generic).
+# This shell script is the only place that knows about the license
+# server URL and PRO-specific download logic.
 
 set -e
 
@@ -15,19 +19,24 @@ if [ -n "$FILAOPS_LICENSE_KEY" ]; then
         if curl -sf -H "X-License-Key: $FILAOPS_LICENSE_KEY" \
             "$LICENSE_URL/api/v1/download/filaops-pro" \
             -o "$WHEEL_PATH"; then
-            pip install --no-cache-dir -q "$WHEEL_PATH"
+            pip install --no-cache-dir "$WHEEL_PATH" 2>&1 | tail -1
             rm -f "$WHEEL_PATH"
             echo "FilaOps: PRO plugin installed."
         else
-            echo "FilaOps: Could not download PRO plugin. Starting in Community mode."
+            echo "FilaOps: Could not download PRO plugin. Check your license key."
+            echo "FilaOps: Starting in Community mode."
         fi
+    fi
+
+    # Bridge: set the generic plugin env var so Core's load_plugin finds it
+    if python -c "import filaops_pro" 2>/dev/null; then
+        FILAOPS_PRO_MODULE=filaops_pro
     fi
 fi
 
 # ─── Run Command ───
-# Delegate to Python for reliable env var passing via os.execvp
 if [ $# -gt 0 ]; then
-    exec python /app/scripts/entrypoint.py "$@"
+    exec env FILAOPS_PRO_MODULE="$FILAOPS_PRO_MODULE" "$@"
 else
-    exec python /app/scripts/entrypoint.py
+    exec env FILAOPS_PRO_MODULE="$FILAOPS_PRO_MODULE" uvicorn app.main:app --host 0.0.0.0 --port 8000
 fi
