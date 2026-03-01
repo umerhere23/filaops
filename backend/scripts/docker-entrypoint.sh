@@ -10,7 +10,7 @@ if [ -n "$FILAOPS_LICENSE_KEY" ]; then
     if ! python -c "import filaops_pro" 2>/dev/null; then
         echo "FilaOps: License key detected. Downloading PRO plugin..."
         LICENSE_URL="${LICENSE_SERVER_URL:-https://license.blb3dprinting.com}"
-        WHEEL_PATH="/tmp/filaops_pro.whl"
+        WHEEL_PATH="/tmp/filaops_pro-0.1.0-py3-none-any.whl"
 
         if curl -sf -H "X-License-Key: $FILAOPS_LICENSE_KEY" \
             "$LICENSE_URL/api/v1/download/filaops-pro" \
