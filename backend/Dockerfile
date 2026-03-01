@@ -12,6 +12,7 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y \
     gcc \
     libpq-dev \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements first (cache layer)
@@ -21,26 +22,17 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy application code
 COPY . .
 
-# Optional: install plugin wheels if present (e.g. filaops-pro)
-# Drop .whl files into backend/ before building — they're installed
-# here and ignored if none exist. Core works identically without them.
-RUN if ls /app/*.whl 1>/dev/null 2>&1; then \
-        pip install --no-cache-dir /app/*.whl && rm -f /app/*.whl; \
-    fi
-
 # Create directories and non-root user
 # sed strips Windows CRLF line endings that break shebangs on Linux
 RUN mkdir -p /app/uploads /app/logs /app/static/uploads/products \
     && addgroup --system appgroup \
-    && adduser --system --ingroup appgroup appuser \
+    && adduser --system --home /home/appuser --ingroup appgroup appuser \
     && chown -R appuser:appgroup /app/uploads /app/logs /app/static \
     && chmod -R a+rX /app \
-    && sed -i 's/\r$//' /app/scripts/docker-migrate.sh \
-    && chmod +x /app/scripts/docker-migrate.sh
+    && sed -i 's/\r$//' /app/scripts/docker-migrate.sh /app/scripts/docker-entrypoint.sh \
+    && chmod +x /app/scripts/docker-migrate.sh /app/scripts/docker-entrypoint.sh
 
 EXPOSE 8000
 
-USER appuser
-
-# Start server only - migrations run via separate 'migrate' service in docker-compose
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Entrypoint runs as root to install plugins, then drops to appuser for the app
+ENTRYPOINT ["/app/scripts/docker-entrypoint.sh"]

@@ -5,11 +5,30 @@
 
 set -e
 
+# ─── PRO Plugin Auto-Download (same logic as entrypoint) ───
+# Migrate service needs the plugin installed to run PRO migrations.
+if [ -n "$FILAOPS_LICENSE_KEY" ]; then
+    if ! python -c "import filaops_pro" 2>/dev/null; then
+        echo "FilaOps: License key detected. Downloading PRO plugin..."
+        LICENSE_URL="${LICENSE_SERVER_URL:-https://license.blb3dprinting.com}"
+        WHEEL_PATH="/tmp/filaops_pro.whl"
+
+        if curl -sf -H "X-License-Key: $FILAOPS_LICENSE_KEY" \
+            "$LICENSE_URL/api/v1/download/filaops-pro" \
+            -o "$WHEEL_PATH"; then
+            pip install --no-cache-dir "$WHEEL_PATH" 2>&1 | tail -1
+            rm -f "$WHEEL_PATH"
+            echo "FilaOps: PRO plugin installed."
+        else
+            echo "FilaOps: Could not download PRO plugin. Skipping PRO migrations."
+        fi
+    fi
+fi
+
+# ─── Core Migrations ───
 echo "FilaOps: Running database migrations..."
 
-# First, check if alembic can find the current DB revision.
-# If the DB was created by an older/different edition, the stamped
-# revision won't exist in our migration files.
+# Check if alembic can find the current DB revision.
 CURRENT_OUTPUT=$(alembic current 2>&1) || true
 
 if echo "$CURRENT_OUTPUT" | grep -q "Can't locate revision"; then
@@ -33,12 +52,12 @@ if echo "$CURRENT_OUTPUT" | grep -q "Can't locate revision"; then
     exit 1
 fi
 
-# Normal migration — apply any pending migrations
+# Normal migration — apply any pending Core migrations
 alembic upgrade head
 
-# Plugin migrations — run if a plugin with its own Alembic config is installed.
-# Each plugin uses a separate version table (e.g. alembic_version_pro) so
-# plugin and Core migration chains never interfere.
+# ─── PRO Plugin Migrations ───
+# Each plugin uses a separate version table (e.g. alembic_version_pro)
+# so plugin and Core migration chains never interfere.
 if python -c "import filaops_pro" 2>/dev/null; then
     PRO_INI=$(python -c "import filaops_pro, os; print(os.path.join(os.path.dirname(filaops_pro.__file__), 'alembic.ini'))")
     if [ -f "$PRO_INI" ]; then

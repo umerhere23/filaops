@@ -33,8 +33,7 @@ services:
       DB_USER: ${DB_USER:-postgres}
       DB_PASSWORD: ${DB_PASSWORD:-changeme}
       SECRET_KEY: ${SECRET_KEY:-change-in-production}
-      # Plugin support — set these in .env to enable PRO features
-      FILAOPS_PRO_MODULE: ${FILAOPS_PRO_MODULE:-}
+      # PRO — set FILAOPS_LICENSE_KEY in .env to auto-download and activate
       FILAOPS_LICENSE_KEY: ${FILAOPS_LICENSE_KEY:-}
       DATABASE_URL: postgresql+psycopg://${DB_USER:-postgres}:${DB_PASSWORD:-changeme}@db:5432/${DB_NAME:-filaops}
     depends_on:
@@ -62,8 +61,7 @@ services:
       ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost}
       FRONTEND_URL: ${FRONTEND_URL:-http://localhost}
       FILAOPS_VERSION: ${FILAOPS_VERSION:-}
-      # Plugin support — set these in .env to enable PRO features
-      FILAOPS_PRO_MODULE: ${FILAOPS_PRO_MODULE:-}
+      # PRO — set FILAOPS_LICENSE_KEY in .env to auto-download and activate
       FILAOPS_LICENSE_KEY: ${FILAOPS_LICENSE_KEY:-}
     depends_on:
       migrate:
