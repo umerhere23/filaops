@@ -12,6 +12,7 @@ import logging
 
 from app.core.version import VersionManager
 from app.core.plugin_registry import get_tier, get_features
+from app.core.settings import settings
 from app.db.session import get_db
 
 logger = logging.getLogger(__name__)
@@ -34,6 +35,7 @@ class SystemInfoResponse(BaseModel):
     tier: str
     features_enabled: list[str]
     version: str
+    smtp_configured: bool = False
 
 
 class UpdateCheckResponse(BaseModel):
@@ -118,6 +120,7 @@ async def get_system_info():
             tier=get_tier(),
             features_enabled=get_features(),
             version=version_info.get("version", "unknown"),
+            smtp_configured=bool(settings.SMTP_USER and settings.SMTP_PASSWORD),
         )
     except Exception as e:
         logger.error(f"Failed to get system info: {e}", exc_info=True)
