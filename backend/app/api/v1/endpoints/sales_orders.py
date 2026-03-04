@@ -15,6 +15,7 @@ from app.db.session import get_db
 from app.models.user import User
 from app.models.sales_order import SalesOrder, SalesOrderLine
 from app.models.product import Product
+from app.models.material import MaterialInventory
 from app.models.shipping_event import ShippingEvent
 from app.logging_config import get_logger
 from app.schemas.sales_order import (
@@ -70,13 +71,33 @@ def build_sales_order_response(order: SalesOrder, db: Session) -> SalesOrderResp
         ).order_by(SalesOrderLine.id).all()
 
         for line in order_lines:
-            product = db.query(Product).filter(Product.id == line.product_id).first()
             line_total = line.total if line.total else (line.unit_price * line.quantity)
+
+            # Resolve product or material info
+            product_sku = None
+            product_name = None
+            material_sku = None
+            material_name = None
+
+            if line.product_id:
+                product = db.query(Product).filter(Product.id == line.product_id).first()
+                product_sku = product.sku if product else ""
+                product_name = product.name if product else ""
+            elif line.material_inventory_id:
+                material = db.query(MaterialInventory).filter(
+                    MaterialInventory.id == line.material_inventory_id
+                ).first()
+                material_sku = material.sku if material else ""
+                material_name = material.display_name if material else ""
+
             lines.append(SalesOrderLineResponse(
                 id=line.id,
                 product_id=line.product_id,
-                product_sku=product.sku if product else "",
-                product_name=product.name if product else "",
+                material_inventory_id=line.material_inventory_id,
+                product_sku=product_sku,
+                product_name=product_name,
+                material_sku=material_sku,
+                material_name=material_name,
                 quantity=line.quantity if line.quantity else Decimal("0"),
                 unit_price=line.unit_price,
                 total=line_total,
@@ -218,7 +239,13 @@ async def create_sales_order(
     Use this for orders from manual entry, Squarespace, WooCommerce, etc.
     """
     lines = [
-        {"product_id": line.product_id, "quantity": line.quantity, "notes": line.notes}
+        {
+            "product_id": line.product_id,
+            "material_inventory_id": line.material_inventory_id,
+            "quantity": line.quantity,
+            "unit_price": line.unit_price,
+            "notes": line.notes,
+        }
         for line in request.lines
     ]
 
