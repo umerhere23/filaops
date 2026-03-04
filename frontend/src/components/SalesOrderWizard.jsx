@@ -894,18 +894,6 @@ export default function SalesOrderWizard({ isOpen, onClose, onSuccess }) {
   const validateStep = (step) => {
     setError(null);
 
-    if (step === 1) {
-      // Validate customer selection
-      const customerError = validateRequired(
-        orderData.customer_id,
-        "Customer"
-      );
-      if (customerError) {
-        setError(customerError);
-        return false;
-      }
-    }
-
     if (step === 2) {
       // Validate line items
       if (lineItems.length === 0) {

@@ -85,11 +85,17 @@ const RemediationModal = ({ isOpen, onClose, check, onComplete }) => {
 
       if (response.ok) {
         const data = await response.json();
-        setAutoFixComplete(true);
-        toast.success(data.message);
-        // Mark all steps as complete
-        const allSteps = new Set(guide.steps.map((_, i) => i));
-        setCompletedSteps(allSteps);
+        if (data.manual) {
+          // Docker / no .env — show key for manual copy
+          setGeneratedKey(data.new_key);
+          toast.info(data.message);
+        } else {
+          setAutoFixComplete(true);
+          toast.success(data.message);
+          // Mark all steps as complete
+          const allSteps = new Set(guide.steps.map((_, i) => i));
+          setCompletedSteps(allSteps);
+        }
       } else {
         const errorData = await response.json().catch(() => ({}));
         const errorMsg = errorData.detail || errorData.message || `Error ${response.status}`;

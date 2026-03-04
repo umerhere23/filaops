@@ -97,6 +97,7 @@ export function createApiClient(/** @type {ApiConfig} */ cfg) {
           method: init.method || "GET",
           status: res.status,
           message,
+          detail: payload && typeof payload === "object" ? payload.detail : undefined,
         });
       } catch { /* emit error silently */ }
       try {
