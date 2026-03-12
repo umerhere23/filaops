@@ -573,7 +573,7 @@ export default function SalesOrderWizard({ isOpen, onClose, onSuccess }) {
           product: null,
           material: material,
           quantity: 1,
-          unit_price: material.cost_per_kg || 0,
+          unit_price: 0,  // Force explicit price entry — never default to internal cost
           _key: `material-${material.id}`,
         },
       ]);
