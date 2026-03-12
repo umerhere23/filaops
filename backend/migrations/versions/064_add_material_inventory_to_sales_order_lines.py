@@ -56,6 +56,22 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
+    # Abort if any material-backed lines exist — restoring NOT NULL on
+    # product_id would fail for rows where product_id is NULL.
+    bind = op.get_bind()
+    has_material_lines = bind.execute(
+        sa.text(
+            "SELECT 1 FROM sales_order_lines "
+            "WHERE material_inventory_id IS NOT NULL "
+            "LIMIT 1"
+        )
+    ).first()
+    if has_material_lines:
+        raise RuntimeError(
+            "Cannot downgrade: sales_order_lines with material_inventory_id exist. "
+            "Delete or convert those rows before downgrading past revision 064."
+        )
+
     # Drop CHECK constraint first
     op.drop_constraint("ck_sol_product_or_material", "sales_order_lines", type_="check")
 
