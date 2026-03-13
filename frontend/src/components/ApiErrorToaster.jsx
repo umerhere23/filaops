@@ -50,7 +50,7 @@ export default function ApiErrorToaster() {
       const detail = e?.detail;
 
       // Check if this is a tier limit error
-      if (status === 403 && detail?.code === "TIER_LIMIT_EXCEEDED") {
+      if (status === 403 && detail && typeof detail === "object" && detail.code === "TIER_LIMIT_EXCEEDED") {
         // Emit special event for upgrade modal
         emit("tier:limit-reached", {
           resource: detail.resource,
@@ -60,6 +60,12 @@ export default function ApiErrorToaster() {
           message: detail.message,
         });
         return; // Don't show regular toast for tier limits
+      }
+
+      // PRO feature endpoint returned 403 — show contextual message
+      if (status === 403 && detail && typeof detail === "object" && detail.message) {
+        toast.error(detail.message);
+        return;
       }
 
       // Handle server unavailable (502, 503, network errors) gracefully

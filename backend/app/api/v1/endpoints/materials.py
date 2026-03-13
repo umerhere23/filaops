@@ -7,7 +7,7 @@ Uses material_service for business logic (ARCHITECT-003).
 from typing import List
 from fastapi import APIRouter, Depends, HTTPException, File, UploadFile, Query
 from fastapi.responses import StreamingResponse
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, contains_eager
 from pydantic import BaseModel
 import io
 
@@ -346,6 +346,76 @@ def get_materials_for_bom(db: Session = Depends(get_db)) -> MaterialsForBOMRespo
         return {"items": result}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+class MaterialInventoryItem(BaseModel):
+    """Material inventory item for order line selection."""
+    id: int
+    sku: str
+    name: str
+    material_type_code: str
+    material_type_name: str
+    color_code: str
+    color_name: str
+    color_hex: str | None = None
+    cost_per_kg: float | None = None
+    in_stock: bool = True
+    quantity_kg: float = 0.0
+
+
+class MaterialInventoryListResponse(BaseModel):
+    items: list[MaterialInventoryItem]
+
+
+@router.get("/for-order", response_model=MaterialInventoryListResponse)
+def get_materials_for_order(
+    in_stock_only: bool = Query(False, description="Only return in-stock materials"),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> MaterialInventoryListResponse:
+    """
+    Get material inventory items formatted for sales order line selection.
+
+    Returns MaterialInventory records (with their id as the identifier
+    to use as ``material_inventory_id`` on a sales order line).
+    """
+    from app.models.material import MaterialInventory, MaterialType, Color
+
+    query = (
+        db.query(MaterialInventory)
+        .join(MaterialType, MaterialInventory.material_type_id == MaterialType.id)
+        .join(Color, MaterialInventory.color_id == Color.id)
+        .options(
+            contains_eager(MaterialInventory.material_type),
+            contains_eager(MaterialInventory.color),
+        )
+        .filter(MaterialInventory.active.is_(True))
+    )
+
+    if in_stock_only:
+        query = query.filter(MaterialInventory.in_stock.is_(True))
+
+    items = query.order_by(MaterialType.name, Color.name).all()
+
+    result = []
+    for inv in items:
+        mt = inv.material_type
+        color = inv.color
+        result.append(MaterialInventoryItem(
+            id=inv.id,
+            sku=inv.sku,
+            name=f"{mt.name} - {color.name}" if mt and color else inv.sku,
+            material_type_code=mt.code if mt else "",
+            material_type_name=mt.name if mt else "",
+            color_code=color.code if color else "",
+            color_name=color.name if color else "",
+            color_hex=color.hex_code if color else None,
+            cost_per_kg=float(inv.cost_per_kg) if inv.cost_per_kg is not None else None,
+            in_stock=inv.in_stock or False,
+            quantity_kg=float(inv.quantity_kg) if inv.quantity_kg else 0.0,
+        ))
+
+    return MaterialInventoryListResponse(items=result)
 
 
 @router.get("/pricing/{material_type_code}", response_model=MaterialPricingResponse)

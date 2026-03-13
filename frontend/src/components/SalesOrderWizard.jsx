@@ -122,6 +122,10 @@ export default function SalesOrderWizard({ isOpen, onClose, onSuccess }) {
     standard_cost: null,
   });
 
+  // Material inventory items for order lines (raw material selling)
+  const [materialInventory, setMaterialInventory] = useState([]);
+  const [materialSearch, setMaterialSearch] = useState("");
+
   // Inline material (filament) creation
   const [showMaterialWizard, setShowMaterialWizard] = useState(false);
   const [materialTypes, setMaterialTypes] = useState([]);
@@ -208,6 +212,7 @@ export default function SalesOrderWizard({ isOpen, onClose, onSuccess }) {
       fetchWorkCenters();
       fetchRoutingTemplates();
       fetchMaterialTypesAndColors();
+      fetchMaterialInventory();
       fetchTaxSettings();
     }
   }, [isOpen]);
@@ -408,6 +413,21 @@ export default function SalesOrderWizard({ isOpen, onClose, onSuccess }) {
     }
   };
 
+  const fetchMaterialInventory = async () => {
+    try {
+      const res = await fetch(
+        `${API_URL}/api/v1/materials/for-order?in_stock_only=false`,
+        { credentials: "include" }
+      );
+      if (res.ok) {
+        const data = await res.json();
+        setMaterialInventory(data.items || []);
+      }
+    } catch {
+      // Material inventory fetch failure is non-critical
+    }
+  };
+
   const fetchTaxSettings = async () => {
     try {
       const res = await fetch(`${API_URL}/api/v1/settings/company`, {
@@ -506,11 +526,11 @@ export default function SalesOrderWizard({ isOpen, onClose, onSuccess }) {
 
   // Add existing product to line items
   const addLineItem = (product) => {
-    const existing = lineItems.find((li) => li.product_id === product.id);
+    const existing = lineItems.find((li) => li.product_id === product.id && li.line_type === "product");
     if (existing) {
       setLineItems(
         lineItems.map((li) =>
-          li.product_id === product.id
+          li.product_id === product.id && li.line_type === "product"
             ? { ...li, quantity: li.quantity + 1 }
             : li
         )
@@ -519,36 +539,68 @@ export default function SalesOrderWizard({ isOpen, onClose, onSuccess }) {
       setLineItems([
         ...lineItems,
         {
+          line_type: "product",
           product_id: product.id,
+          material_inventory_id: null,
           product: product,
+          material: null,
           quantity: 1,
           unit_price: product.selling_price || 0,
+          _key: `product-${product.id}`,
         },
       ]);
     }
   };
 
-  // Remove line item
-  const removeLineItem = (productId) => {
-    setLineItems(lineItems.filter((li) => li.product_id !== productId));
+  // Add material inventory item to line items
+  const addMaterialLineItem = (material) => {
+    const existing = lineItems.find((li) => li.material_inventory_id === material.id && li.line_type === "material");
+    if (existing) {
+      setLineItems(
+        lineItems.map((li) =>
+          li.material_inventory_id === material.id && li.line_type === "material"
+            ? { ...li, quantity: li.quantity + 1 }
+            : li
+        )
+      );
+    } else {
+      setLineItems([
+        ...lineItems,
+        {
+          line_type: "material",
+          product_id: null,
+          material_inventory_id: material.id,
+          product: null,
+          material: material,
+          quantity: 1,
+          unit_price: 0,  // Force explicit price entry — never default to internal cost
+          _key: `material-${material.id}`,
+        },
+      ]);
+    }
+  };
+
+  // Remove line item (works for both product and material lines)
+  const removeLineItem = (key) => {
+    setLineItems(lineItems.filter((li) => li._key !== key));
   };
 
   // Update line item quantity
-  const updateLineQuantity = (productId, quantity) => {
+  const updateLineQuantity = (key, quantity) => {
     setLineItems(
       lineItems.map((li) =>
-        li.product_id === productId
-          ? { ...li, quantity: Math.max(1, quantity) }
+        li._key === key
+          ? { ...li, quantity: Math.max(li.line_type === "material" ? 0.01 : 1, quantity) }
           : li
       )
     );
   };
 
   // Update line item price
-  const updateLinePrice = (productId, price) => {
+  const updateLinePrice = (key, price) => {
     setLineItems(
       lineItems.map((li) =>
-        li.product_id === productId ? { ...li, unit_price: price } : li
+        li._key === key ? { ...li, unit_price: price } : li
       )
     );
   };
@@ -894,18 +946,6 @@ export default function SalesOrderWizard({ isOpen, onClose, onSuccess }) {
   const validateStep = (step) => {
     setError(null);
 
-    if (step === 1) {
-      // Validate customer selection
-      const customerError = validateRequired(
-        orderData.customer_id,
-        "Customer"
-      );
-      if (customerError) {
-        setError(customerError);
-        return false;
-      }
-    }
-
     if (step === 2) {
       // Validate line items
       if (lineItems.length === 0) {
@@ -917,7 +957,10 @@ export default function SalesOrderWizard({ isOpen, onClose, onSuccess }) {
       for (const item of lineItems) {
         const qtyError = validateQuantity(item.quantity, "Quantity");
         if (qtyError) {
-          setError(`${item.name}: ${qtyError}`);
+          const itemName = item.line_type === "material"
+            ? item.material?.name
+            : item.product?.name || item.name;
+          setError(`${itemName}: ${qtyError}`);
           return false;
         }
       }
@@ -946,11 +989,20 @@ export default function SalesOrderWizard({ isOpen, onClose, onSuccess }) {
     try {
       const payload = {
         customer_id: orderData.customer_id || null,
-        lines: lineItems.map((li) => ({
-          product_id: li.product_id,
-          quantity: li.quantity,
-          unit_price: li.unit_price,
-        })),
+        lines: lineItems.map((li) => {
+          if (li.line_type === "material") {
+            return {
+              material_inventory_id: li.material_inventory_id,
+              quantity: li.quantity,
+              unit_price: li.unit_price,
+            };
+          }
+          return {
+            product_id: li.product_id,
+            quantity: li.quantity,
+            unit_price: li.unit_price,
+          };
+        }),
         source: "manual",
         shipping_address_line1: orderData.shipping_address_line1 || null,
         shipping_city: orderData.shipping_city || null,
@@ -1137,11 +1189,15 @@ export default function SalesOrderWizard({ isOpen, onClose, onSuccess }) {
               setProductSearch={setProductSearch}
               lineItems={lineItems}
               addLineItem={addLineItem}
+              addMaterialLineItem={addMaterialLineItem}
               removeLineItem={removeLineItem}
               updateLineQuantity={updateLineQuantity}
               updateLinePrice={updateLinePrice}
               orderTotal={orderTotal}
               startNewItem={startNewItem}
+              materialInventory={materialInventory}
+              materialSearch={materialSearch}
+              setMaterialSearch={setMaterialSearch}
               showItemWizard={showItemWizard}
               itemWizardProps={{
                 ITEM_TYPES,

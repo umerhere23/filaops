@@ -25,6 +25,7 @@ from app.models.production_order import (
 )
 from app.models.manufacturing import Routing, RoutingOperation, RoutingOperationMaterial
 from app.models.product import Product
+from app.models.material import MaterialInventory
 from app.models.bom import BOM, BOMLine
 from app.models.inventory import Inventory
 from app.models.company_settings import CompanySettings
@@ -462,6 +463,26 @@ def validate_product_for_order(db: Session, product_id: int) -> Product:
     return product
 
 
+def validate_material_for_order(db: Session, material_inventory_id: int) -> MaterialInventory:
+    """Validate material inventory item exists and is active for ordering."""
+    material = (
+        db.query(MaterialInventory)
+        .filter(MaterialInventory.id == material_inventory_id)
+        .first()
+    )
+    if not material:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Material inventory ID {material_inventory_id} not found",
+        )
+    if not material.active:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Material '{material.sku}' is inactive and cannot be ordered",
+        )
+    return material
+
+
 def get_company_tax_settings(db: Session) -> tuple[Optional[Decimal], bool, Optional[str]]:
     """
     Get company tax settings.
@@ -505,9 +526,15 @@ def create_sales_order(
     """
     Create a manual sales order (line_item type).
 
+    Each line must contain exactly one of ``product_id`` or
+    ``material_inventory_id``.  Product lines use the catalog selling
+    price; material lines require an explicit ``unit_price`` (or fall
+    back to the material's ``cost_per_kg``).
+
     Args:
         customer_id: Optional customer user ID
-        lines: List of dicts with product_id, quantity, notes
+        lines: List of dicts with product_id **or** material_inventory_id,
+               quantity, unit_price (optional for products), notes
         source: Order source (manual, squarespace, etc.)
         source_order_id: External order ID
         shipping_*: Shipping address fields
@@ -527,31 +554,86 @@ def create_sales_order(
     if customer_id:
         customer = validate_customer(db, customer_id)
 
-    # Validate products and calculate totals
-    line_products = []
+    # Validate line items and calculate totals
+    validated_lines: list[dict] = []
     total_price = Decimal("0")
     total_quantity = 0
+    line_names: list[str] = []
 
     for line in lines:
-        product = validate_product_for_order(db, line["product_id"])
+        has_product = line.get("product_id") is not None
+        has_material = line.get("material_inventory_id") is not None
 
-        # SECURITY: Always use product's catalog price
-        unit_price = product.selling_price or Decimal("0")
-        if unit_price <= 0:
+        if has_product == has_material:
             raise HTTPException(
                 status_code=400,
-                detail=f"Product '{product.sku}' has no selling price configured"
+                detail="Each line must specify exactly one of product_id or material_inventory_id",
             )
 
-        line_total = unit_price * line["quantity"]
+        if has_product:
+            # --- Product line (existing path) ---
+            product = validate_product_for_order(db, line["product_id"])
 
-        line_products.append({
-            "product": product,
-            "quantity": line["quantity"],
-            "unit_price": unit_price,
-            "line_total": line_total,
-            "notes": line.get("notes"),
-        })
+            # SECURITY: Always use product's catalog price
+            unit_price = product.selling_price or Decimal("0")
+            if unit_price <= 0:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Product '{product.sku}' has no selling price configured",
+                )
+
+            line_total = unit_price * line["quantity"]
+
+            validated_lines.append({
+                "product": product,
+                "material": None,
+                "product_id": product.id,
+                "material_inventory_id": None,
+                "quantity": line["quantity"],
+                "unit_price": unit_price,
+                "line_total": line_total,
+                "notes": line.get("notes"),
+            })
+            line_names.append(product.name)
+
+        else:
+            # --- Material inventory line (new path) ---
+            material = validate_material_for_order(db, line["material_inventory_id"])
+
+            # Use explicit unit_price if provided, otherwise fall back to cost_per_kg
+            explicit_price = line.get("unit_price")
+            if explicit_price is not None:
+                unit_price = Decimal(str(explicit_price))
+            elif material.cost_per_kg:
+                unit_price = Decimal(str(material.cost_per_kg))
+            else:
+                raise HTTPException(
+                    status_code=400,
+                    detail=(
+                        f"Material '{material.sku}' has no cost configured. "
+                        "Provide a unit_price for this line."
+                    ),
+                )
+
+            if unit_price <= 0:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Material '{material.sku}' unit price must be > 0",
+                )
+
+            line_total = unit_price * line["quantity"]
+
+            validated_lines.append({
+                "product": None,
+                "material": material,
+                "product_id": None,
+                "material_inventory_id": material.id,
+                "quantity": line["quantity"],
+                "unit_price": unit_price,
+                "line_total": line_total,
+                "notes": line.get("notes"),
+            })
+            line_names.append(material.display_name)
 
         total_price += line_total
         total_quantity += line["quantity"]
@@ -568,12 +650,24 @@ def create_sales_order(
     grand_total = total_price + shipping_cost + tax_amount
 
     # Build product name summary
-    if len(line_products) == 1:
-        product_name = f"{line_products[0]['product'].name} x{line_products[0]['quantity']}"
+    if len(validated_lines) == 1:
+        product_name = f"{line_names[0]} x{validated_lines[0]['quantity']}"
     else:
-        product_name = f"{len(line_products)} items"
+        product_name = f"{len(validated_lines)} items"
 
-    first_product = line_products[0]["product"]
+    # Derive material_type from the first line (product or material)
+    first_line = validated_lines[0]
+    if first_line["product"]:
+        first_product = first_line["product"]
+        material_type = (
+            getattr(first_product.material_type, "base_material", None)
+            or getattr(first_product.material_type, "name", None)
+            or "Material"
+        )
+    elif first_line["material"] and first_line["material"].material_type:
+        material_type = first_line["material"].material_type.base_material
+    else:
+        material_type = "Material"
 
     # Use customer_id if provided, otherwise current user
     user_id = customer_id if customer_id else created_by_user_id
@@ -597,7 +691,7 @@ def create_sales_order(
         source_order_id=source_order_id,
         product_name=product_name,
         quantity=total_quantity,
-        material_type=first_product.item_category.name if first_product.item_category else "PLA",
+        material_type=material_type,
         finish="standard",
         unit_price=total_price / total_quantity if total_quantity > 0 else Decimal("0"),
         total_price=total_price,
@@ -624,10 +718,11 @@ def create_sales_order(
     db.flush()
 
     # Create order lines
-    for line_data in line_products:
+    for line_data in validated_lines:
         order_line = SalesOrderLine(
             sales_order_id=sales_order.id,
-            product_id=line_data["product"].id,
+            product_id=line_data["product_id"],
+            material_inventory_id=line_data["material_inventory_id"],
             quantity=line_data["quantity"],
             unit_price=line_data["unit_price"],
             total=line_data["line_total"],
@@ -1697,6 +1792,10 @@ def generate_production_orders(
             )
 
         for idx, line in enumerate(lines, start=1):
+            # Skip material-only lines — raw materials don't need production orders
+            if not line.product_id:
+                continue
+
             product = db.query(Product).filter(Product.id == line.product_id).first()
             if not product:
                 raise HTTPException(
@@ -1817,12 +1916,17 @@ def generate_production_orders(
             user_id=None,
         )
 
-    # Update order status
-    if order.status == "pending":
-        order.status = "in_production"
-        order.confirmed_at = datetime.now(timezone.utc)
-    elif order.status == "confirmed":
-        order.status = "in_production"
+        # Update order status — only move to in_production when work orders exist
+        if order.status == "pending":
+            order.status = "in_production"
+            order.confirmed_at = datetime.now(timezone.utc)
+        elif order.status == "confirmed":
+            order.status = "in_production"
+    elif order.order_type == "line_item":
+        # All lines are material-only — no production needed (pick and ship)
+        if order.status == "pending":
+            order.status = "confirmed"
+            order.confirmed_at = datetime.now(timezone.utc)
 
     return {
         "message": f"Created {len(created_orders)} production order(s)",
@@ -2098,13 +2202,25 @@ def generate_packing_slip_pdf(db: Session, order_id: int) -> io.BytesIO:
     if lines:
         # Multi-line order
         for line in lines:
-            product = (
-                db.query(Product)
-                .filter(Product.id == line.product_id)
-                .first()
-            )
-            sku = product.sku if product else ""
-            description = product.name if product else ""
+            if line.product_id:
+                product = (
+                    db.query(Product)
+                    .filter(Product.id == line.product_id)
+                    .first()
+                )
+                sku = product.sku if product else ""
+                description = product.name if product else ""
+            elif line.material_inventory_id:
+                material = (
+                    db.query(MaterialInventory)
+                    .filter(MaterialInventory.id == line.material_inventory_id)
+                    .first()
+                )
+                sku = material.sku if material else ""
+                description = material.display_name if material else ""
+            else:
+                sku = ""
+                description = ""
             qty_ordered = str(int(line.quantity)) if line.quantity else "0"
             qty_shipped = (
                 str(int(line.shipped_quantity))

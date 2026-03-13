@@ -1,6 +1,7 @@
 /**
  * ReviewStep - Step 3 of the Sales Order Wizard.
  * Displays order summary: customer info, shipping, line items with totals, tax, and notes.
+ * Supports both product and raw material line items.
  */
 export default function ReviewStep({
   selectedCustomer,
@@ -63,7 +64,7 @@ export default function ReviewStep({
           <thead className="bg-gray-800/50">
             <tr>
               <th className="text-left py-2 px-4 text-xs font-medium text-gray-400">
-                Product
+                Item
               </th>
               <th className="text-right py-2 px-4 text-xs font-medium text-gray-400">
                 Qty
@@ -77,28 +78,47 @@ export default function ReviewStep({
             </tr>
           </thead>
           <tbody>
-            {lineItems.map((li) => (
-              <tr
-                key={li.product_id}
-                className="border-t border-gray-800"
-              >
-                <td className="py-3 px-4">
-                  <div className="text-white">{li.product?.name}</div>
-                  <div className="text-gray-500 text-xs font-mono">
-                    {li.product?.sku}
-                  </div>
-                </td>
-                <td className="py-3 px-4 text-right text-gray-300">
-                  {li.quantity}
-                </td>
-                <td className="py-3 px-4 text-right text-gray-300">
-                  ${parseFloat(li.unit_price).toFixed(2)}
-                </td>
-                <td className="py-3 px-4 text-right text-green-400 font-medium">
-                  ${(li.quantity * li.unit_price).toFixed(2)}
-                </td>
-              </tr>
-            ))}
+            {lineItems.map((li) => {
+              const isMaterial = li.line_type === "material";
+              const name = isMaterial
+                ? li.material?.name
+                : li.product?.name;
+              const sku = isMaterial
+                ? li.material?.sku
+                : li.product?.sku;
+
+              return (
+                <tr
+                  key={li._key}
+                  className="border-t border-gray-800"
+                >
+                  <td className="py-3 px-4">
+                    <div className="flex items-center gap-2">
+                      {isMaterial && (
+                        <span className="px-1.5 py-0.5 text-[10px] font-semibold bg-orange-500/20 text-orange-400 border border-orange-500/30 rounded">
+                          RAW
+                        </span>
+                      )}
+                      <div>
+                        <div className="text-white">{name}</div>
+                        <div className="text-gray-500 text-xs font-mono">
+                          {sku}
+                        </div>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="py-3 px-4 text-right text-gray-300">
+                    {li.quantity}
+                  </td>
+                  <td className="py-3 px-4 text-right text-gray-300">
+                    ${parseFloat(li.unit_price).toFixed(2)}
+                  </td>
+                  <td className="py-3 px-4 text-right text-green-400 font-medium">
+                    ${(li.quantity * li.unit_price).toFixed(2)}
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
           <tfoot className="bg-gray-800/80">
             <tr>

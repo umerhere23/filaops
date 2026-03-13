@@ -428,19 +428,32 @@ async def update_secret_key(
     )))
     env_path = os.path.join(backend_dir, ".env")
 
+    # Generate new key
+    new_key = secrets.token_urlsafe(64)
+
     if not os.path.exists(env_path):
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Configuration file not found at {env_path}"
+        # Docker or env-var-only deployment — no .env file to write to.
+        # Return the generated key for the user to copy manually.
+        logger.info(
+            f"SECRET_KEY generated (manual mode) by {current_user.email} — "
+            f".env not found at {env_path}"
         )
+        return {
+            "success": True,
+            "manual": True,
+            "message": (
+                "No .env file found — you're likely running in Docker. "
+                "Copy the key below and add it to your host .env or "
+                "docker-compose.yml, then restart the backend."
+            ),
+            "new_key": new_key,
+            "requires_restart": True,
+        }
 
     try:
         # Read current .env content
         with open(env_path, "r") as f:
             content = f.read()
-
-        # Generate new key
-        new_key = secrets.token_urlsafe(64)
 
         # Replace SECRET_KEY line
         pattern = r'^SECRET_KEY=.*$'
@@ -460,9 +473,10 @@ async def update_secret_key(
 
         return {
             "success": True,
+            "manual": False,
             "message": "SECRET_KEY has been updated! Please restart the backend.",
             "new_key_preview": f"{new_key[:20]}...",
-            "requires_restart": True
+            "requires_restart": True,
         }
 
     except Exception as e:

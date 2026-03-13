@@ -542,10 +542,15 @@ class TestUpdateSecretKey:
     """Tests for the auto-update SECRET_KEY endpoint."""
 
     @patch("os.path.exists", return_value=False)
-    def test_update_secret_key_env_not_found(self, mock_exists, client):
+    def test_update_secret_key_env_not_found_returns_manual(self, mock_exists, client):
+        """When .env is missing (Docker), return the key for manual copy."""
         resp = client.post(f"{BASE_URL}/remediate/update-secret-key")
-        assert resp.status_code == 404
-        assert "not found" in resp.json()["detail"]
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["success"] is True
+        assert data["manual"] is True
+        assert "new_key" in data
+        assert len(data["new_key"]) > 30
 
     @patch("builtins.open", create=True)
     @patch("os.path.exists", return_value=True)

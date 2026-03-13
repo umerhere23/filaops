@@ -18,12 +18,14 @@ const AppContext = createContext({
   tier: "community",
   features: [],
   loading: true,
+  smtpConfigured: null,
 });
 
 export function AppProvider({ children }) {
   const [tier, setTier] = useState("community");
   const [features, setFeatures] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [smtpConfigured, setSmtpConfigured] = useState(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -34,6 +36,7 @@ export function AppProvider({ children }) {
         if (cancelled || !data) return;
         setTier(data.tier ?? "community");
         setFeatures(data.features_enabled ?? []);
+        setSmtpConfigured(data.smtp_configured ?? null);
       })
       .catch(() => {
         // Endpoint unreachable — stay on community defaults
@@ -48,7 +51,7 @@ export function AppProvider({ children }) {
   }, []);
 
   return (
-    <AppContext.Provider value={{ tier, features, loading }}>
+    <AppContext.Provider value={{ tier, features, loading, smtpConfigured }}>
       {children}
     </AppContext.Provider>
   );

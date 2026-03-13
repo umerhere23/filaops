@@ -57,6 +57,34 @@ def setup_database():
         conn.execute(text("ALTER TABLE quotes ADD COLUMN IF NOT EXISTS tax_name VARCHAR(100)"))
         conn.execute(text("ALTER TABLE sales_orders ADD COLUMN IF NOT EXISTS tax_name VARCHAR(100)"))
         conn.execute(text("ALTER TABLE sales_order_lines ADD COLUMN IF NOT EXISTS tax_name VARCHAR(100)"))
+        # Issue #362: material inventory on sales order lines
+        # DROP NOT NULL is idempotent — safe to run if already nullable
+        conn.execute(text(
+            "ALTER TABLE sales_order_lines "
+            "ALTER COLUMN product_id DROP NOT NULL"
+        ))
+        conn.execute(text(
+            "ALTER TABLE sales_order_lines "
+            "ADD COLUMN IF NOT EXISTS material_inventory_id INTEGER "
+            "REFERENCES material_inventory(id)"
+        ))
+        # Add CHECK constraint if it doesn't already exist
+        conn.execute(text("""
+            DO $$
+            BEGIN
+                IF NOT EXISTS (
+                    SELECT 1 FROM pg_constraint
+                    WHERE conname = 'ck_sol_product_or_material'
+                ) THEN
+                    ALTER TABLE sales_order_lines ADD CONSTRAINT ck_sol_product_or_material
+                    CHECK (
+                        (product_id IS NOT NULL AND material_inventory_id IS NULL) OR
+                        (product_id IS NULL AND material_inventory_id IS NOT NULL)
+                    );
+                END IF;
+            END
+            $$;
+        """))
         conn.commit()
 
     # Seed required data

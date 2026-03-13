@@ -1,7 +1,7 @@
 """
 Sales Order Pydantic Schemas
 """
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 from typing import Optional, List
 from datetime import datetime
 from decimal import Decimal
@@ -14,11 +14,27 @@ from app.schemas.fulfillment_status import FulfillmentStatusSummary
 # ============================================================================
 
 class SalesOrderLineCreate(BaseModel):
-    """Line item for manual order creation"""
-    product_id: int = Field(..., description="Product ID")
-    quantity: int = Field(..., gt=0, le=10000, description="Quantity (1-10000)")
-    unit_price: Optional[Decimal] = Field(None, ge=0, description="Unit price (uses product price if not specified)")
+    """Line item for manual order creation.
+
+    Exactly one of product_id or material_inventory_id must be provided.
+    """
+    product_id: Optional[int] = Field(None, description="Product ID (for finished goods)")
+    material_inventory_id: Optional[int] = Field(None, description="Material inventory ID (for raw material / filament)")
+    quantity: Decimal = Field(..., gt=0, le=10000, description="Quantity — integer for products, fractional for materials (e.g. 0.5 kg)")
+    unit_price: Optional[Decimal] = Field(None, ge=0, description="Unit price (uses product/material price if not specified)")
     notes: Optional[str] = Field(None, max_length=500)
+
+    @model_validator(mode="after")
+    def exactly_one_item_ref(self) -> "SalesOrderLineCreate":
+        has_product = self.product_id is not None
+        has_material = self.material_inventory_id is not None
+        if has_product == has_material:  # both True or both False
+            raise ValueError(
+                "Exactly one of product_id or material_inventory_id must be provided"
+            )
+        if has_product and self.quantity != self.quantity.to_integral_value():
+            raise ValueError("Product line quantity must be a whole number")
+        return self
 
 
 class SalesOrderCreate(BaseModel):
@@ -150,9 +166,12 @@ class SalesOrderListResponse(SalesOrderBase):
 class SalesOrderLineResponse(BaseModel):
     """Sales order line item response"""
     id: int
-    product_id: int
+    product_id: Optional[int] = None
+    material_inventory_id: Optional[int] = None
     product_sku: Optional[str] = None
     product_name: Optional[str] = None
+    material_sku: Optional[str] = None
+    material_name: Optional[str] = None
     quantity: Decimal
     unit_price: Decimal
     total: Decimal  # Matches model field name

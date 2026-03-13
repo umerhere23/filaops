@@ -3,7 +3,7 @@ Sales Order Model
 
 Represents customer orders converted from approved quotes
 """
-from sqlalchemy import Column, Integer, String, Numeric, DateTime, ForeignKey, Text, Boolean
+from sqlalchemy import Column, Integer, String, Numeric, DateTime, ForeignKey, Text, Boolean, CheckConstraint
 from sqlalchemy.orm import relationship
 from datetime import datetime, timezone
 
@@ -185,7 +185,8 @@ class SalesOrderLine(Base):
 
     # Foreign Keys
     sales_order_id = Column(Integer, ForeignKey("sales_orders.id", ondelete="CASCADE"), nullable=False, index=True)
-    product_id = Column(Integer, ForeignKey("products.id"), nullable=False, index=True)
+    product_id = Column(Integer, ForeignKey("products.id"), nullable=True, index=True)
+    material_inventory_id = Column(Integer, ForeignKey("material_inventory.id"), nullable=True, index=True)
 
     # Line Details (matching actual database schema)
     quantity = Column(Numeric(10, 2), nullable=False)
@@ -206,10 +207,20 @@ class SalesOrderLine(Base):
     # Relationships
     sales_order = relationship("SalesOrder", back_populates="lines")
     product = relationship("Product")
+    material_inventory = relationship("MaterialInventory")
 
     # Note: The database schema uses 'total' not 'total_price', and doesn't have
     # line_number, product_sku, product_name, or created_at columns.
     # These are computed in the API layer when building responses.
+
+    # Exactly one of product_id or material_inventory_id must be set
+    __table_args__ = (
+        CheckConstraint(
+            "(product_id IS NOT NULL AND material_inventory_id IS NULL) OR "
+            "(product_id IS NULL AND material_inventory_id IS NOT NULL)",
+            name="ck_sol_product_or_material",
+        ),
+    )
 
     def __repr__(self):
         return f"<SalesOrderLine SO-{self.sales_order_id if self.sales_order_id else 'N/A'}-{self.id}>"

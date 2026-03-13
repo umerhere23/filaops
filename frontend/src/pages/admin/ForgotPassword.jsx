@@ -262,12 +262,12 @@ export default function ForgotPassword() {
               </svg>
               <div>
                 <h3 className="font-medium mb-1" style={{ color: 'var(--primary)' }}>
-                  Admin Approval Required
+                  How It Works
                 </h3>
                 <p className="text-sm" style={{ color: 'var(--primary-light)' }}>
-                  Your password reset request will be reviewed by an
-                  administrator. You will receive an email with reset
-                  instructions if approved.
+                  If email is configured, your request will be sent to an
+                  administrator for approval. Otherwise, a reset link will be
+                  generated immediately on this page.
                 </p>
               </div>
             </div>
