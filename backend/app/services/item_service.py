@@ -22,10 +22,6 @@ from app.services.bom_management_service import recalculate_bom_cost
 
 logger = get_logger(__name__)
 
-# Default pricing markup (from quoter: PLA/PETG=3.5x, ABS/ASA=4.0x, TPU=4.5x)
-DEFAULT_PRICE_MARKUP = 3.5
-
-
 # ---------------------------------------------------------------------------
 # Inline UOM Conversion (fallback when database UOM table is empty)
 # ---------------------------------------------------------------------------
@@ -431,10 +427,6 @@ def list_items(
         if needs_reorder and not item_needs_reorder:
             continue
 
-        suggested_price = None
-        if item.standard_cost:
-            suggested_price = float(item.standard_cost) * DEFAULT_PRICE_MARKUP
-
         result.append(
             {
                 "id": item.id,
@@ -448,7 +440,6 @@ def list_items(
                 "standard_cost": item.standard_cost,
                 "average_cost": item.average_cost,
                 "selling_price": item.selling_price,
-                "suggested_price": suggested_price,
                 "active": item.active,
                 "on_hand_qty": on_hand,
                 "available_qty": available,
@@ -1298,6 +1289,116 @@ def recost_all_items(
     db.commit()
 
     logger.info(f"Recost all: {updated} items updated, {skipped} skipped")
+
+    return {
+        "updated": updated,
+        "skipped": skipped,
+        "items": results,
+    }
+
+
+# ---------------------------------------------------------------------------
+# Suggest Prices
+# ---------------------------------------------------------------------------
+
+
+def get_price_candidates(
+    db: Session,
+    *,
+    item_type: str | None = None,
+    category_id: int | None = None,
+) -> list[dict]:
+    """Return items eligible for price suggestions (excludes materials/supplies).
+
+    Lightweight query — no inventory joins. Returns cost data for
+    client-side margin calculation.
+    """
+    query = (
+        db.query(Product)
+        .filter(
+            Product.active.is_(True),
+            Product.standard_cost > 0,
+            Product.item_type.notin_(["material", "supply"]),
+            Product.material_type_id.is_(None),
+        )
+    )
+
+    if item_type:
+        query = query.filter(Product.item_type == item_type)
+
+    if category_id:
+        cat_ids = get_category_and_descendants(db, category_id)
+        query = query.filter(Product.category_id.in_(cat_ids))
+
+    items = query.order_by(Product.sku).all()
+
+    return [
+        {
+            "id": item.id,
+            "sku": item.sku,
+            "name": item.name,
+            "item_type": item.item_type or "finished_good",
+            "standard_cost": float(item.standard_cost),
+            "current_selling_price": float(item.selling_price) if item.selling_price is not None else None,
+        }
+        for item in items
+    ]
+
+
+def apply_suggested_prices(
+    db: Session,
+    items: list[dict],
+) -> dict:
+    """Apply selected suggested selling prices. Returns summary with old/new."""
+    updated = 0
+    skipped = 0
+    results = []
+
+    # Batch-fetch all products to avoid N+1
+    item_ids = [entry["id"] for entry in items if "id" in entry]
+    products = db.query(Product).filter(Product.id.in_(item_ids)).all()
+    products_by_id = {p.id: p for p in products}
+
+    # Excluded types (defense in depth — candidates endpoint already filters)
+    excluded_types = {"material", "supply"}
+
+    for entry in items:
+        product = products_by_id.get(entry["id"])
+        if not product:
+            skipped += 1
+            continue
+
+        # Enforce same exclusion as get_price_candidates
+        if (product.item_type in excluded_types) or product.material_type_id is not None:
+            skipped += 1
+            continue
+
+        new_price = entry.get("selling_price")
+        if new_price is None:
+            skipped += 1
+            continue
+
+        old_price = float(product.selling_price) if product.selling_price is not None else None
+
+        # Skip no-op writes
+        if old_price is not None and abs(old_price - float(new_price)) < 0.0001:
+            skipped += 1
+            continue
+
+        product.selling_price = new_price
+        product.updated_at = datetime.now(timezone.utc)
+        updated += 1
+
+        results.append({
+            "id": product.id,
+            "sku": product.sku,
+            "old_price": old_price,
+            "new_price": float(new_price),
+        })
+
+    db.commit()
+
+    logger.info(f"Apply suggested prices: {updated} updated, {skipped} skipped")
 
     return {
         "updated": updated,

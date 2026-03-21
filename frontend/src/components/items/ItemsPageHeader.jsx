@@ -1,7 +1,9 @@
 /**
  * Header bar for the Items page.
- * Contains page title, view toggle, action buttons, and recost result banner.
+ * Contains page title, view toggle, action buttons, and recost/pricing result banners.
  */
+import { useFormatCurrency } from "../../hooks/useFormatCurrency";
+
 export default function ItemsPageHeader({
   viewMode,
   onViewModeChange,
@@ -11,9 +13,13 @@ export default function ItemsPageHeader({
   onRefresh,
   onRecostAll,
   onClearRecostResult,
+  onSuggestPrices,
+  suggestPricesResult,
+  onClearSuggestPricesResult,
   onNewMaterial,
   onNewItem,
 }) {
+  const formatCurrency = useFormatCurrency();
   return (
     <>
       {/* Header */}
@@ -66,6 +72,12 @@ export default function ItemsPageHeader({
             {recosting ? "Recosting..." : "Recost All"}
           </button>
           <button
+            onClick={onSuggestPrices}
+            className="px-4 py-2 bg-gray-800 border border-gray-700 text-gray-300 rounded-lg hover:bg-gray-700 hover:text-white"
+          >
+            Suggest Prices
+          </button>
+          <button
             onClick={onNewMaterial}
             className="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg font-medium transition-colors"
           >
@@ -107,6 +119,41 @@ export default function ItemsPageHeader({
             </div>
             <button
               onClick={onClearRecostResult}
+              className="text-gray-500 hover:text-white"
+            >
+              x
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Suggest Prices Result */}
+      {suggestPricesResult && (
+        <div className="bg-purple-500/10 border border-purple-500/30 rounded-xl p-4">
+          <div className="flex justify-between items-start">
+            <div>
+              <p className="text-purple-400 font-medium">
+                Prices updated: {suggestPricesResult.updated} items updated,{" "}
+                {suggestPricesResult.skipped} skipped
+              </p>
+              {suggestPricesResult.items?.length > 0 && (
+                <div className="mt-2 text-sm text-gray-400 max-h-32 overflow-auto">
+                  {suggestPricesResult.items.slice(0, 10).map((item, i) => (
+                    <div key={i}>
+                      {item.sku}: {item.old_price != null ? formatCurrency(item.old_price) : "none"} →{" "}
+                      {formatCurrency(item.new_price)}
+                    </div>
+                  ))}
+                  {suggestPricesResult.items.length > 10 && (
+                    <div className="text-gray-500">
+                      ...and {suggestPricesResult.items.length - 10} more
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+            <button
+              onClick={onClearSuggestPricesResult}
               className="text-gray-500 hover:text-white"
             >
               x
