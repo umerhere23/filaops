@@ -496,13 +496,22 @@ export default function RoutingEditorContent({
     0
   );
   const totalCost = operations.reduce((sum, op) => {
+    let laborCost;
     if (op.calculated_cost != null) {
-      return sum + parseFloat(op.calculated_cost);
+      laborCost = parseFloat(op.calculated_cost);
+    } else {
+      // Fallback for newly-added operations not yet saved to backend
+      const totalMinutes = (parseFloat(op.setup_time_minutes) || 0) + (parseFloat(op.run_time_minutes) || 0);
+      const rate = parseFloat(op.hourly_rate) || 0;
+      laborCost = (totalMinutes / 60) * rate;
     }
-    // Fallback for newly-added operations not yet saved to backend
-    const totalMinutes = (parseFloat(op.setup_time_minutes) || 0) + (parseFloat(op.run_time_minutes) || 0);
-    const rate = parseFloat(op.hourly_rate) || 0;
-    return sum + (totalMinutes / 60) * rate;
+    // Sum per-unit material costs from operationMaterials state.
+    // Skip batch/order materials to match backend routing total.
+    const mats = op.id ? operationMaterials[op.id] || [] : [];
+    const materialCost = mats
+      .filter((m) => !m.quantity_per || m.quantity_per.toLowerCase() === "unit")
+      .reduce((s, m) => s + parseFloat(m.extended_cost || 0), 0);
+    return sum + laborCost + materialCost;
   }, 0);
 
   const needsProductSelection =
