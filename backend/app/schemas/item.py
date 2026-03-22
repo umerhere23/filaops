@@ -230,6 +230,7 @@ class ItemListResponse(BaseModel):
     id: int
     sku: str
     name: str
+    description: Optional[str] = None
     item_type: str
     procurement_type: str = "buy"
     category_id: Optional[int] = None
@@ -245,6 +246,9 @@ class ItemListResponse(BaseModel):
     reorder_point: Optional[Decimal] = None
     stocking_policy: str = "on_demand"  # stocked or on_demand
     needs_reorder: bool = False  # Only true for stocked items below reorder_point
+
+    # Product image
+    image_url: Optional[str] = Field(default=None, max_length=500)
 
     # Material info (for filament items)
     material_type_id: Optional[int] = None
