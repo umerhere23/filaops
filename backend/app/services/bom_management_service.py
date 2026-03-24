@@ -12,6 +12,7 @@ from decimal import Decimal
 
 from fastapi import HTTPException, status
 from sqlalchemy import desc, func
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, joinedload
 
 from app.logging_config import get_logger
@@ -894,6 +895,18 @@ def add_bom_line(db: Session, bom_id: int, line_data: BOMLineCreate) -> dict:
             detail="Component not found"
         )
 
+    # Guard: prevent duplicate materials on the same BOM
+    duplicate = (
+        db.query(BOMLine)
+        .filter(BOMLine.bom_id == bom_id, BOMLine.component_id == line_data.component_id)
+        .first()
+    )
+    if duplicate:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="This material is already on this BOM — adjust the quantity on the existing line instead.",
+        )
+
     # Get next sequence if not provided
     if line_data.sequence is None:
         max_seq = (
@@ -920,7 +933,16 @@ def add_bom_line(db: Session, bom_id: int, line_data: BOMLineCreate) -> dict:
     db.add(line)
 
     # Recalculate BOM cost
-    db.flush()
+    try:
+        db.flush()
+    except IntegrityError as exc:
+        db.rollback()
+        if getattr(exc.orig, "sqlstate", None) == "23505":
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="This material is already on this BOM — adjust the quantity on the existing line instead.",
+            )
+        raise
     bom.total_cost = recalculate_bom_cost(bom, db)
 
     db.commit()
@@ -969,7 +991,16 @@ def update_bom_line(db: Session, bom_id: int, line_id: int, line_data: BOMLineUp
     bom = db.query(BOM).filter(BOM.id == bom_id).first()
     bom.total_cost = recalculate_bom_cost(bom, db)
 
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError as exc:
+        db.rollback()
+        if getattr(exc.orig, "sqlstate", None) == "23505":
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="This material is already on this BOM — adjust the quantity on the existing line instead.",
+            )
+        raise
     db.refresh(line)
 
     # Get component for response

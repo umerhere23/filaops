@@ -961,7 +961,9 @@ class TestGetInventorySummary:
         location = inventory_transaction_service._get_or_create_default_location(db)
         _make_inventory(db, product.id, location.id, Decimal("50"))
 
-        result = inventory_transaction_service.get_inventory_summary(db, show_zero=False)
+        result = inventory_transaction_service.get_inventory_summary(
+            db, show_zero=False, search=product.name
+        )
         assert "items" in result
         assert "total" in result
         found = [i for i in result["items"] if i["product_id"] == product.id]
