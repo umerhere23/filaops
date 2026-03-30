@@ -26,14 +26,27 @@ export default function QuoteDetailModal({
   const [imageUrl, setImageUrl] = useState(null);
   const imageUrlRef = useRef(null);
 
-  const isExpired = new Date(quote.expires_at) < new Date();
+  // Fetch full quote detail (with lines) since list items don't include them
+  const [fullQuote, setFullQuote] = useState(quote);
+  useEffect(() => {
+    setFullQuote(quote); // Reset immediately when quote prop changes
+    fetch(`${API_URL}/api/v1/quotes/${quote.id}`, { credentials: "include" })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => { if (data) setFullQuote(data); })
+      .catch(() => {});
+  }, [quote.id]);
+
+  // Use fullQuote for display (has lines), fall back to prop for fields not yet loaded
+  const q = fullQuote;
+
+  const isExpired = new Date(q.expires_at) < new Date();
   const canConvert =
-    (quote.status === "approved" || quote.status === "accepted") && !isExpired && !quote.sales_order_id;
+    (q.status === "approved" || q.status === "accepted") && !isExpired && !q.sales_order_id;
 
   // Load image if quote has one (fetch with auth and create blob URL)
   useEffect(() => {
-    if (quote.has_image) {
-      fetch(`${API_URL}/api/v1/quotes/${quote.id}/image`, {
+    if (q.has_image) {
+      fetch(`${API_URL}/api/v1/quotes/${q.id}/image`, {
         credentials: "include",
       })
         .then((res) => {
@@ -57,7 +70,7 @@ export default function QuoteDetailModal({
         imageUrlRef.current = null;
       }
     };
-  }, [quote.id, quote.has_image]);
+  }, [q.id, q.has_image]);
 
   const handleImageUpload = async (e) => {
     const file = e.target.files?.[0];
@@ -146,16 +159,16 @@ export default function QuoteDetailModal({
         <div className="relative bg-gray-900 border border-gray-700 rounded-xl shadow-xl max-w-2xl w-full mx-auto p-6">
           <div className="flex justify-between items-start mb-6">
             <div>
-              <h3 className="text-lg font-semibold text-white">{quote.quote_number}</h3>
+              <h3 className="text-lg font-semibold text-white">{q.quote_number}</h3>
               <p className="text-gray-400 text-sm">
-                Created {new Date(quote.created_at).toLocaleDateString()}
+                Created {new Date(q.created_at).toLocaleDateString()}
               </p>
             </div>
             <div className="flex items-center gap-2">
-              <span className={`px-3 py-1 rounded-full text-sm ${getStatusStyle(quote.status)}`}>
-                {quote.status}
+              <span className={`px-3 py-1 rounded-full text-sm ${getStatusStyle(q.status)}`}>
+                {q.status}
               </span>
-              {isExpired && quote.status !== "converted" && (
+              {isExpired && q.status !== "converted" && (
                 <span className="px-3 py-1 rounded-full text-sm bg-red-500/20 text-red-400">Expired</span>
               )}
               <button onClick={onClose} className="text-gray-400 hover:text-white ml-2">
@@ -169,56 +182,92 @@ export default function QuoteDetailModal({
           {/* Quote Details */}
           <div className="space-y-4">
             <div className="bg-gray-800 rounded-lg p-4">
-              <h4 className="text-sm font-medium text-gray-300 mb-3">Product Details</h4>
-              <div className="grid grid-cols-2 gap-4 text-sm mb-4">
-                <div>
-                  <span className="text-gray-400">Product:</span>
-                  <span className="text-white ml-2">{quote.product_name || "—"}</span>
+              <h4 className="text-sm font-medium text-gray-300 mb-3">
+                {q.lines?.length > 0 ? `Items (${q.lines.length})` : "Product Details"}
+              </h4>
+
+              {/* Multi-line items */}
+              {q.lines?.length > 0 ? (
+                <div className="space-y-2 mb-4">
+                  {q.lines.map((line) => (
+                    <div key={line.id} className="flex justify-between items-center text-sm py-2 border-b border-gray-700 last:border-0">
+                      <div className="flex-1 min-w-0">
+                        <span className="text-white">{line.product_name}</span>
+                        {(line.material_type || line.color) && (
+                          <span className="text-gray-500 ml-2 text-xs">
+                            {[line.material_type, line.color].filter(Boolean).join(" / ")}
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-4 text-right">
+                        <span className="text-gray-400">x{line.quantity}</span>
+                        <span className="text-gray-400">@ ${parseFloat(line.unit_price).toFixed(2)}</span>
+                        <span className="text-white font-medium w-20">${parseFloat(line.total).toFixed(2)}</span>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-                <div>
-                  <span className="text-gray-400">Quantity:</span>
-                  <span className="text-white ml-2">{quote.quantity}</span>
-                </div>
-                {quote.material_type && (
+              ) : (
+                /* Legacy single-item display */
+                <div className="grid grid-cols-2 gap-4 text-sm mb-4">
                   <div>
-                    <span className="text-gray-400">Material:</span>
-                    <span className="text-white ml-2">
-                      {quote.material_type}
-                      {quote.color ? ` / ${quote.color}` : ""}
-                    </span>
+                    <span className="text-gray-400">Product:</span>
+                    <span className="text-white ml-2">{q.product_name || "—"}</span>
                   </div>
-                )}
-                <div>
-                  <span className="text-gray-400">Unit Price:</span>
-                  <span className="text-white ml-2">${parseFloat(quote.unit_price || 0).toFixed(2)}</span>
+                  <div>
+                    <span className="text-gray-400">Quantity:</span>
+                    <span className="text-white ml-2">{q.quantity}</span>
+                  </div>
+                  {q.material_type && (
+                    <div>
+                      <span className="text-gray-400">Material:</span>
+                      <span className="text-white ml-2">
+                        {q.material_type}
+                        {q.color ? ` / ${q.color}` : ""}
+                      </span>
+                    </div>
+                  )}
+                  <div>
+                    <span className="text-gray-400">Unit Price:</span>
+                    <span className="text-white ml-2">${parseFloat(q.unit_price || 0).toFixed(2)}</span>
+                  </div>
                 </div>
-              </div>
+              )}
+
               {/* Price Breakdown */}
               <div className="border-t border-gray-700 pt-3 space-y-2">
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-400">Subtotal:</span>
                   <span className="text-white">
-                    ${parseFloat(quote.subtotal || (quote.unit_price * quote.quantity) || 0).toFixed(2)}
+                    ${parseFloat(q.subtotal || (q.unit_price * q.quantity) || 0).toFixed(2)}
                   </span>
                 </div>
-                {quote.tax_rate && quote.tax_amount && (
+                {q.discount_percent && parseFloat(q.discount_percent) > 0 && (
                   <div className="flex justify-between text-sm">
-                    <span className="text-gray-400">
-                      Tax ({(parseFloat(quote.tax_rate) * 100).toFixed(2)}%):
+                    <span className="text-green-400">
+                      Customer Discount ({parseFloat(q.discount_percent)}%):
                     </span>
-                    <span className="text-white">${parseFloat(quote.tax_amount).toFixed(2)}</span>
+                    <span className="text-green-400">Applied per line</span>
                   </div>
                 )}
-                {quote.shipping_cost && parseFloat(quote.shipping_cost) > 0 && (
+                {q.tax_rate && q.tax_amount && (
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-400">
+                      Tax ({(parseFloat(q.tax_rate) * 100).toFixed(2)}%):
+                    </span>
+                    <span className="text-white">${parseFloat(q.tax_amount).toFixed(2)}</span>
+                  </div>
+                )}
+                {q.shipping_cost && parseFloat(q.shipping_cost) > 0 && (
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-400">Shipping:</span>
-                    <span className="text-white">${parseFloat(quote.shipping_cost).toFixed(2)}</span>
+                    <span className="text-white">${parseFloat(q.shipping_cost).toFixed(2)}</span>
                   </div>
                 )}
                 <div className="flex justify-between text-sm font-medium pt-2 border-t border-gray-700">
                   <span className="text-white">Total:</span>
                   <span className="text-green-400 text-lg font-bold">
-                    ${parseFloat(quote.total_price || 0).toFixed(2)}
+                    ${parseFloat(q.total_price || 0).toFixed(2)}
                   </span>
                 </div>
               </div>
@@ -228,10 +277,10 @@ export default function QuoteDetailModal({
             <div className="bg-gray-800 rounded-lg p-4">
               <h4 className="text-sm font-medium text-gray-300 mb-3">Customer</h4>
               <div className="text-sm">
-                <p className="text-white">{quote.customer_name || "No name"}</p>
-                <p className="text-gray-400">{quote.customer_email || "No email"}</p>
-                {quote.customer_id && (
-                  <p className="text-blue-400 text-xs mt-1">Linked to Customer #{quote.customer_id}</p>
+                <p className="text-white">{q.customer_name || "No name"}</p>
+                <p className="text-gray-400">{q.customer_email || "No email"}</p>
+                {q.customer_id && (
+                  <p className="text-blue-400 text-xs mt-1">Linked to Customer #{q.customer_id}</p>
                 )}
               </div>
             </div>
@@ -299,35 +348,35 @@ export default function QuoteDetailModal({
               <h4 className="text-sm font-medium text-gray-300 mb-2">Validity</h4>
               <p className={`text-sm ${isExpired ? "text-red-400" : "text-white"}`}>
                 {isExpired ? "Expired on " : "Valid until "}
-                {new Date(quote.expires_at).toLocaleDateString()}
+                {new Date(q.expires_at).toLocaleDateString()}
               </p>
             </div>
 
             {/* Notes */}
-            {(quote.customer_notes || quote.admin_notes) && (
+            {(q.customer_notes || q.admin_notes) && (
               <div className="bg-gray-800 rounded-lg p-4">
                 <h4 className="text-sm font-medium text-gray-300 mb-2">Notes</h4>
-                {quote.customer_notes && (
+                {q.customer_notes && (
                   <p className="text-sm text-white mb-2">
                     <span className="text-gray-400">Customer: </span>
-                    {quote.customer_notes}
+                    {q.customer_notes}
                   </p>
                 )}
-                {quote.admin_notes && (
+                {q.admin_notes && (
                   <p className="text-sm text-white">
                     <span className="text-gray-400">Internal: </span>
-                    {quote.admin_notes}
+                    {q.admin_notes}
                   </p>
                 )}
               </div>
             )}
 
             {/* Linked Order */}
-            {quote.sales_order_id && (
+            {q.sales_order_id && (
               <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-4">
                 <p className="text-green-400 text-sm">
-                  Converted to Order #{quote.sales_order_id}
-                  {quote.converted_at && ` on ${new Date(quote.converted_at).toLocaleDateString()}`}
+                  Converted to Order #{q.sales_order_id}
+                  {q.converted_at && ` on ${new Date(q.converted_at).toLocaleDateString()}`}
                 </p>
               </div>
             )}
@@ -337,7 +386,7 @@ export default function QuoteDetailModal({
           <div className="mt-6 pt-4 border-t border-gray-700 space-y-3">
             {/* Primary Actions */}
             <div className="flex flex-wrap gap-2">
-              {quote.status === "pending" && (
+              {q.status === "pending" && (
                 <>
                   <button
                     onClick={() => onUpdateStatus(quote.id, "approved")}
@@ -359,7 +408,7 @@ export default function QuoteDetailModal({
                 </>
               )}
 
-              {quote.status === "approved" && (
+              {q.status === "approved" && (
                 <button
                   onClick={() => onUpdateStatus(quote.id, "accepted")}
                   className="px-4 py-2 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700"
@@ -420,7 +469,7 @@ export default function QuoteDetailModal({
                 Duplicate
               </button>
 
-              {quote.status !== "converted" && (
+              {q.status !== "converted" && (
                 <>
                   <button
                     onClick={onEdit}
