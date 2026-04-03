@@ -8,6 +8,7 @@
 export function ProductionProgressSummary({ orders }) {
   const completed = orders.filter(o => o.status === "complete").length;
   const inProgress = orders.filter(o => o.status === "in_progress").length;
+  const short = orders.filter(o => o.status === "short").length;
   const scrapped = orders.filter(o => o.status === "scrapped").length;
   const total = orders.length;
   const completionPercent = total > 0 ? (completed / total) * 100 : 0;
@@ -31,6 +32,9 @@ export function ProductionProgressSummary({ orders }) {
         {completed > 0 && (
           <span className="text-green-400">{completed} Complete</span>
         )}
+        {short > 0 && (
+          <span className="text-amber-400">{short} Short</span>
+        )}
         {scrapped > 0 && (
           <span className="text-red-400">{scrapped} Scrapped</span>
         )}
@@ -43,6 +47,7 @@ const STATUS_CONFIG = {
   draft: { color: "bg-gray-500", text: "Draft" },
   released: { color: "bg-blue-500", text: "Released" },
   in_progress: { color: "bg-purple-500", text: "In Progress" },
+  short: { color: "bg-amber-500", text: "Short" },
   complete: { color: "bg-green-500", text: "Complete" },
   scrapped: { color: "bg-red-500", text: "Scrapped" },
   closed: { color: "bg-gray-400", text: "Closed" },
@@ -59,7 +64,7 @@ const PROGRESS_BAR_CLASS = {
   scrapped: "bg-red-500",
 };
 
-export function ProductionOrderStatusCard({ order, onViewInProduction }) {
+export function ProductionOrderStatusCard({ order, onViewInProduction, onAcceptShort }) {
   const status = STATUS_CONFIG[order.status] || { color: "bg-gray-500", text: order.status };
   const progressPercent = order.quantity_ordered > 0
     ? ((order.quantity_completed || 0) / order.quantity_ordered) * 100
@@ -90,6 +95,18 @@ export function ProductionOrderStatusCard({ order, onViewInProduction }) {
           View
         </button>
       </div>
+
+      {/* Accept Short action for orders stuck in "short" status */}
+      {onAcceptShort && order.status === "short" && (order.quantity_completed || 0) > 0 && (
+        <div className="mt-2 mb-1">
+          <button
+            onClick={() => onAcceptShort(order)}
+            className="px-3 py-1.5 bg-amber-600 hover:bg-amber-500 text-white text-xs rounded font-medium transition-colors"
+          >
+            Accept Short ({order.quantity_completed}/{order.quantity_ordered})
+          </button>
+        </div>
+      )}
 
       {/* Progress bar */}
       <div className="flex items-center gap-3">

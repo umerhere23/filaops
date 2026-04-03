@@ -49,6 +49,7 @@ from app.schemas.production_order import (
     CostBreakdownResponse,
     SpoolListItem,
     SpoolAssignmentResponse,
+    AcceptShortRequest,
 )
 from app.core.status_config import (
     ProductionOrderStatus,
@@ -83,8 +84,14 @@ def build_production_order_response(order: ProductionOrder, db: Session) -> Prod
 
     qty_ordered = float(order.quantity_ordered or 0)
     qty_completed = float(order.quantity_completed or 0)
-    qty_remaining = max(0, qty_ordered - qty_completed)
-    completion_pct = (qty_completed / qty_ordered * 100) if qty_ordered > 0 else 0
+    # When a PO is complete (including accept-short), remaining is 0 and
+    # completion is 100% even if qty_completed < qty_ordered
+    if order.status == "complete":
+        qty_remaining = 0
+        completion_pct = 100.0
+    else:
+        qty_remaining = max(0, qty_ordered - qty_completed)
+        completion_pct = (qty_completed / qty_ordered * 100) if qty_ordered > 0 else 0
 
     # Build operations list
     operations_response = []
@@ -231,8 +238,14 @@ def build_list_response(order: ProductionOrder, db: Session) -> ProductionOrderL
 
     qty_ordered = float(order.quantity_ordered or 0)
     qty_completed = float(order.quantity_completed or 0)
-    qty_remaining = max(0, qty_ordered - qty_completed)
-    completion_pct = (qty_completed / qty_ordered * 100) if qty_ordered > 0 else 0
+    # When a PO is complete (including accept-short), remaining is 0 and
+    # completion is 100% even if qty_completed < qty_ordered
+    if order.status == "complete":
+        qty_remaining = 0
+        completion_pct = 100.0
+    else:
+        qty_remaining = max(0, qty_ordered - qty_completed)
+        completion_pct = (qty_completed / qty_ordered * 100) if qty_ordered > 0 else 0
 
     return ProductionOrderListResponse(
         id=order.id,
@@ -623,6 +636,28 @@ async def complete_production_order(
         quantity_scrapped=int(request.quantity_scrapped or 0),
         force_close_short=request.force_close_short,
         notes=request.notes,
+    )
+
+    db.commit()
+    db.refresh(order)
+
+    return build_production_order_response(order, db)
+
+
+@router.post("/{order_id}/accept-short", response_model=ProductionOrderResponse)
+async def accept_short(
+    order_id: int,
+    request: Optional[AcceptShortRequest] = None,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> ProductionOrderResponse:
+    """Accept a production order short — complete it with the quantity already produced."""
+    order = production_order_service.accept_short_production_order(
+        db,
+        order_id,
+        user_email=current_user.email,
+        user_id=current_user.id,
+        notes=request.notes if request else None,
     )
 
     db.commit()
