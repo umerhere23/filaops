@@ -468,11 +468,11 @@ A **✕** button appears next to each line when:
 
 - The order has more than one line
 - The line has not been shipped
-- No active production orders are linked to that line
+- No non-cancelled production orders are linked to that line (including completed or closed POs)
 
 Click **✕** → confirm the prompt → the line is removed and totals recalculate automatically.
 
-> **Note**: If a production order exists for the line, cancel it first before removing the line.
+> **Note**: If any non-cancelled production order (including completed or closed states) exists for the line, cancel it first before removing the line.
 
 ---
 

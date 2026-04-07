@@ -1329,4 +1329,4 @@ alembic history --verbose
 ---
 
 *Last updated: 2026-04-06*
-*Generated for FilaOps Core v3.6.0*
+*Generated for FilaOps Core v3.7.0*
