@@ -44,7 +44,7 @@ from app.services.purchase_order_service import (
 )
 from app.models.purchase_order import PurchaseOrder, PurchaseOrderLine
 from app.models.product import Product
-from app.models.inventory import Inventory, InventoryLocation
+from app.models.inventory import Inventory, InventoryLocation, InventoryTransaction
 
 
 # =============================================================================
@@ -1678,8 +1678,80 @@ class TestReceivePurchaseOrder:
         assert result["lines_received"] == 2
         assert result["total_quantity"] == Decimal("30")
 
+    def test_non_material_incompatible_units_receives_as_is(
+        self, db, make_vendor, make_purchase_order, make_product
+    ):
+        """
+        Non-material items can be received even when purchase_unit and product_unit
+        are incompatible (e.g. PTFE tubing ordered in M but product unit is EA).
+
+        Regression test for: PO receiving blocked for maintenance/supply items
+        where the purchase UOM differs from the product's default unit.
+        """
+        vendor = make_vendor()
+        po = make_purchase_order(vendor_id=vendor.id, status="ordered")
+        # Maintenance item: product unit is EA (default), purchased in metres
+        product = make_product(unit="EA", item_type="supply", purchase_uom="M")
+        line = _add_po_line(
+            db, po, product, Decimal("5"), Decimal("2.50"), purchase_unit="M"
+        )
+        db.commit()
+
+        # Must NOT raise — should fall through and receive quantity as-is
+        result = receive_purchase_order(
+            db, po.id,
+            lines=[{"line_id": line.id, "quantity_received": Decimal("5")}],
+            user_id=1,
+            user_email="test@filaops.dev",
+        )
+        assert result["lines_received"] == 1
+        assert result["total_quantity"] == Decimal("5")
+        assert result["inventory_updated"] is True
+
+        # Full receipt of only line → PO moves to received
         db.refresh(po)
         assert po.status == "received"
+
+        db.refresh(line)
+        assert line.quantity_received == Decimal("5")
+
+        # Inventory transaction must be labeled in purchase unit (M) with original cost ($/M)
+        txn_id = result["transactions_created"][0]
+        txn = db.query(InventoryTransaction).filter(InventoryTransaction.id == txn_id).one()
+        assert txn.unit == "M"
+        assert txn.cost_per_unit == Decimal("2.50")
+
+        # Product costs must NOT be updated — $/M is meaningless on an EA product
+        db.refresh(product)
+        assert product.average_cost is None or product.average_cost == 0
+        assert product.last_cost is None or product.last_cost == 0
+
+    def test_material_incompatible_units_still_raises(
+        self, db, make_vendor, make_purchase_order, make_product
+    ):
+        """
+        Material items (filament etc.) with incompatible units STILL raise 400 —
+        mass-based cost math requires a valid conversion.
+        """
+        vendor = make_vendor()
+        po = make_purchase_order(vendor_id=vendor.id, status="ordered")
+        # Material (filament): purchased in EA — incompatible with KG product unit
+        product = make_product(unit="KG", item_type="material", purchase_uom="KG")
+        # Force incompatible purchase_unit directly on the line
+        line = _add_po_line(
+            db, po, product, Decimal("5"), Decimal("20.00"), purchase_unit="EA"
+        )
+        db.commit()
+
+        with pytest.raises(HTTPException) as exc_info:
+            receive_purchase_order(
+                db, po.id,
+                lines=[{"line_id": line.id, "quantity_received": Decimal("5")}],
+                user_id=1,
+                user_email="test@filaops.dev",
+            )
+        assert exc_info.value.status_code == 400
+        assert "incompatible" in str(exc_info.value.detail).lower()
 
     def test_partial_then_remaining(self, db, make_vendor, make_purchase_order, make_product):
         """Partial receipt followed by remaining quantity completes the PO."""
