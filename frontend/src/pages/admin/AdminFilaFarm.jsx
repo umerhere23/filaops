@@ -28,6 +28,11 @@ const JOB_STATUS_COLORS = {
   cancelled: "text-gray-500",
 };
 
+/**
+ * Format a duration in seconds as a concise hours/minutes string.
+ * @param {number | null | undefined} seconds - Duration in seconds; may be null/undefined.
+ * @returns {string} A string in the form `"<H>h <M>m"` when hours are greater than zero, `"<M>m"` when hours are zero, or `"--"` if `seconds` is null or undefined.
+ */
 function formatTime(seconds) {
   if (seconds == null) return "--";
   const h = Math.floor(seconds / 3600);
@@ -35,6 +40,25 @@ function formatTime(seconds) {
   return h > 0 ? `${h}h ${m}m` : `${m}m`;
 }
 
+/**
+ * Render a UI card summarizing a printer's status, temperatures, optional progress, AMS slots, and available actions.
+ *
+ * @param {Object} props
+ * @param {Object} props.printer - Printer data used to populate the card.
+ *   Expected fields:
+ *     - {string} id - Printer identifier.
+ *     - {string} name - Display name.
+ *     - {string} status - Lifecycle status (e.g., "idle", "printing", "paused", "error", "offline").
+ *     - {string} [model] - Printer model string.
+ *     - {number} [nozzle_temp] - Current nozzle temperature (°C).
+ *     - {number} [bed_temp] - Current bed temperature (°C).
+ *     - {number} [progress] - Job progress percent (0-100).
+ *     - {string} [current_job] - Current job name or identifier.
+ *     - {Array<{color?: string, material?: string}>} [ams_slots] - AMS slot entries; each may include `color` and `material`.
+ * @param {Function} props.onCommand - Callback invoked when an action button is clicked. Called as onCommand(printerId, command)
+ *   where `command` is one of `"pause"`, `"resume"`, or `"cancel"`.
+ * @returns {JSX.Element} The rendered printer card component.
+ */
 function PrinterCard({ printer, onCommand }) {
   const colors = STATUS_COLORS[printer.status] || STATUS_COLORS.offline;
   const isPrinting = printer.status === "printing";
@@ -129,6 +153,22 @@ function PrinterCard({ printer, onCommand }) {
   );
 }
 
+/**
+ * Render a table row displaying a print job's key fields.
+ *
+ * Shows the job name, status (with status-colored text), assigned printer ID or an em dash when unset,
+ * progress as a percentage (rounded to nearest whole number), formatted estimated time, and priority.
+ *
+ * @param {Object} props
+ * @param {Object} props.job - Job record to render.
+ * @param {string} props.job.name - Human-readable job name.
+ * @param {string} props.job.status - Job status key (used to select a text color).
+ * @param {string|null|undefined} props.job.printer_id - Assigned printer ID, or null/undefined if unassigned.
+ * @param {number|null|undefined} props.job.progress - Progress value 0–100; treated as 0 if missing.
+ * @param {number|null|undefined} props.job.estimated_time - Estimated remaining time in seconds; passed to formatTime.
+ * @param {number|string} props.job.priority - Job priority value to display.
+ * @returns {JSX.Element} A table row (<tr>) containing the job's displayed fields.
+ */
 function JobRow({ job }) {
   const statusColor = JOB_STATUS_COLORS[job.status] || "text-gray-400";
   return (
@@ -149,6 +189,13 @@ function JobRow({ job }) {
   );
 }
 
+/**
+ * Admin UI for monitoring and controlling FilaFarm printers and jobs; rendered only when the user has PRO access to the FilaFarm feature.
+ *
+ * Displays printer and job lists, today’s stats, and status-driven controls; fetches printers, jobs, and stats, refreshes data periodically, and sends printer commands with user feedback.
+ *
+ * @returns {JSX.Element} The FilaFarm administration interface.
+ */
 export default function AdminFilaFarm() {
   const api = useApi();
   const toast = useToast();

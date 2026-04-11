@@ -81,6 +81,16 @@ function PageLoader() {
   );
 }
 
+/**
+ * Initialize and render the application's top-level providers and route tree.
+ *
+ * Sets up a memoized API client (with unauthorized and error handlers), provides
+ * application-wide context (error boundary, app configuration, locale, API client,
+ * and toast notifications), and defines public and admin routes, including lazily
+ * loaded admin pages wrapped with suspense fallbacks.
+ *
+ * @returns {JSX.Element} The root application element containing providers and routes.
+ */
 export default function App() {
   const api = useMemo(
     () =>

@@ -48,7 +48,11 @@ const statusConfig = {
 };
 
 /**
- * Single machine card
+ * Renders a machine status card for a given resource.
+ * @param {Object} props - Component props.
+ * @param {Object} props.resource - Machine resource. Expected fields: `id`, `code`, `name`, `status`, `current_operation` (object with `production_order_code`, `sequence`, `started_at`), and `pending_operations_count`.
+ * @param {(resource: Object)=} props.onClick - Optional click handler invoked with the `resource` when the card is clicked.
+ * @returns {JSX.Element} A JSX element representing the machine card.
  */
 function MachineCard({ resource, onClick }) {
   const config = statusConfig[resource.status] || statusConfig.available;
@@ -120,7 +124,14 @@ function MachineCard({ resource, onClick }) {
 }
 
 /**
- * Main grid component
+ * Render a responsive grid of machine cards grouped by work center.
+ *
+ * When `resources` is empty, renders an empty-state panel with a prompt
+ * to configure resources.
+ *
+ * @param {Array<Object>} resources - Array of machine resource objects to display; each resource may include fields like `id`, `work_center_name`, `status`, and other display properties.
+ * @param {(resource: Object) => void} [onMachineClick] - Optional callback invoked with a resource when its card is clicked.
+ * @returns {JSX.Element} The rendered grid grouped by work center or the empty-state panel when there are no resources.
  */
 export default function MachineStatusGrid({ resources = [], onMachineClick }) {
   if (resources.length === 0) {

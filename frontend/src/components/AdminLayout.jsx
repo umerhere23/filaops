@@ -591,6 +591,13 @@ const navGroups = [
   },
 ];
 
+/**
+ * AdminLayout component that renders the authenticated admin interface with a responsive sidebar, top header, and main content outlet.
+ *
+ * Renders a persistent desktop sidebar (expandable/collapsible) and a mobile overlay menu, filters navigation items by user role and feature flags, displays current version and company logo when available, polls AI settings for the security badge, and exposes actions for opening the Portal Admin and logging out. Redirects to the admin login when no authenticated user is present.
+ *
+ * @returns {JSX.Element} The admin layout JSX including sidebar, header, and an Outlet for nested routes.
+ */
 export default function AdminLayout() {
   const navigate = useNavigate();
   // Persist sidebar state in localStorage
