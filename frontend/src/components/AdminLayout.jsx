@@ -684,6 +684,7 @@ export default function AdminLayout() {
       ...group,
       items: group.items.filter((item) => {
         if (item.adminOnly && !isAdmin) return false;
+        if (item.proOnly && !isPro) return false;
         if (item.feature && !hasFeature(item.feature)) return false;
         return true;
       }),
@@ -846,7 +847,7 @@ export default function AdminLayout() {
                         >
                           <item.icon />
                           <span>{item.label}</span>
-                          {group.proOnly && !isPro && (
+                          {(group.proOnly || item.proOnly) && !isPro && (
                             <svg
                               className="w-3 h-3 ml-auto"
                               style={{ color: "var(--text-muted)" }}
@@ -953,7 +954,7 @@ export default function AdminLayout() {
                     >
                       <item.icon />
                       {sidebarOpen && <span>{item.label}</span>}
-                      {sidebarOpen && group.proOnly && !isPro && (
+                      {sidebarOpen && (group.proOnly || item.proOnly) && !isPro && (
                         <svg
                           className="w-3 h-3 ml-auto"
                           style={{ color: "var(--text-muted)" }}

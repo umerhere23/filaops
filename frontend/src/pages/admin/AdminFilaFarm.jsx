@@ -29,7 +29,7 @@ const JOB_STATUS_COLORS = {
 };
 
 function formatTime(seconds) {
-  if (!seconds) return "--";
+  if (seconds == null) return "--";
   const h = Math.floor(seconds / 3600);
   const m = Math.floor((seconds % 3600) / 60);
   return h > 0 ? `${h}h ${m}m` : `${m}m`;
@@ -152,7 +152,8 @@ function JobRow({ job }) {
 export default function AdminFilaFarm() {
   const api = useApi();
   const toast = useToast();
-  const { isPro, hasFeature } = useFeatureFlags();
+  const { isPro, hasFeature, loading: flagsLoading } = useFeatureFlags();
+  const hasFilaFarmAccess = isPro && hasFeature("filafarm");
   const [printers, setPrinters] = useState([]);
   const [jobs, setJobs] = useState([]);
   const [stats, setStats] = useState(null);
@@ -160,18 +161,25 @@ export default function AdminFilaFarm() {
   const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState("printers");
   const refreshRef = useRef(null);
+  const commandTimeoutRef = useRef(null);
 
   const fetchData = useCallback(async () => {
     try {
-      const [printersData, jobsData, statsData] = await Promise.all([
-        api.get("/api/v1/pro/filafarm/printers").catch(() => []),
-        api.get("/api/v1/pro/filafarm/jobs").catch(() => []),
-        api.get("/api/v1/pro/filafarm/stats/today").catch(() => null),
+      const [printersRes, jobsRes, statsRes] = await Promise.allSettled([
+        api.get("/api/v1/pro/filafarm/printers"),
+        api.get("/api/v1/pro/filafarm/jobs"),
+        api.get("/api/v1/pro/filafarm/stats/today"),
       ]);
-      setPrinters(printersData || []);
-      setJobs(jobsData || []);
-      setStats(statsData);
-      setError(null);
+
+      setPrinters(printersRes.status === "fulfilled" ? (printersRes.value || []) : []);
+      setJobs(jobsRes.status === "fulfilled" ? (jobsRes.value || []) : []);
+      setStats(statsRes.status === "fulfilled" ? statsRes.value : null);
+
+      const anyFailed =
+        printersRes.status === "rejected" ||
+        jobsRes.status === "rejected" ||
+        statsRes.status === "rejected";
+      setError(anyFailed ? "Some FilaFarm data could not be loaded." : null);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -180,10 +188,17 @@ export default function AdminFilaFarm() {
   }, [api]);
 
   useEffect(() => {
+    if (!hasFilaFarmAccess) return;
     fetchData();
     refreshRef.current = setInterval(fetchData, 15000);
     return () => clearInterval(refreshRef.current);
-  }, [fetchData]);
+  }, [fetchData, hasFilaFarmAccess]);
+
+  useEffect(() => {
+    return () => {
+      if (commandTimeoutRef.current) clearTimeout(commandTimeoutRef.current);
+    };
+  }, []);
 
   const handleCommand = async (printerId, command) => {
     try {
@@ -191,13 +206,21 @@ export default function AdminFilaFarm() {
         command,
       });
       toast.success(`Sent "${command}" to printer`);
-      setTimeout(fetchData, 1000);
+      commandTimeoutRef.current = setTimeout(fetchData, 1000);
     } catch (err) {
       toast.error(err.message);
     }
   };
 
-  if (!isPro || !hasFeature("filafarm")) {
+  if (flagsLoading) {
+    return (
+      <div className="p-6 flex justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500" />
+      </div>
+    );
+  }
+
+  if (!hasFilaFarmAccess) {
     return (
       <div className="p-6 text-center">
         <div className="bg-gray-800 rounded-lg p-8 max-w-md mx-auto">
