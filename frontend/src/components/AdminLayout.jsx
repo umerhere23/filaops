@@ -2,7 +2,11 @@ import { Outlet, Link, NavLink, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import SecurityBadge from "./SecurityBadge";
 import useActivityTokenRefresh from "../hooks/useActivityTokenRefresh";
-import { getCurrentVersion, getCurrentVersionSync, formatVersion } from "../utils/version";
+import {
+  getCurrentVersion,
+  getCurrentVersionSync,
+  formatVersion,
+} from "../utils/version";
 import { API_URL } from "../config/api";
 import { useFeatureFlags } from "../hooks/useFeatureFlags";
 import logoNavbar from "../assets/logo_navbar.png";
@@ -373,6 +377,22 @@ const InvoicesIcon = () => (
   </svg>
 );
 
+const FilaFarmIcon = () => (
+  <svg
+    className="w-5 h-5"
+    fill="none"
+    stroke="currentColor"
+    viewBox="0 0 24 24"
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={2}
+      d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
+    />
+  </svg>
+);
+
 const CommandCenterIcon = () => (
   <svg
     className="w-5 h-5"
@@ -394,7 +414,11 @@ const navGroups = [
     label: null, // No header for dashboard
     items: [
       { path: "/admin", label: "Dashboard", icon: DashboardIcon, end: true },
-      { path: "/admin/command-center", label: "Command Center", icon: CommandCenterIcon },
+      {
+        path: "/admin/command-center",
+        label: "Command Center",
+        icon: CommandCenterIcon,
+      },
     ],
   },
   {
@@ -402,9 +426,24 @@ const navGroups = [
     items: [
       { path: "/admin/orders", label: "Orders", icon: OrdersIcon },
       { path: "/admin/quotes", label: "Quotes", icon: QuotesIcon },
-      { path: "/admin/payments", label: "Payments", icon: PaymentsIcon, adminOnly: true },
-      { path: "/admin/invoices", label: "Invoices", icon: InvoicesIcon, adminOnly: true },
-      { path: "/admin/customers", label: "Customers", icon: CustomersIcon, adminOnly: true },
+      {
+        path: "/admin/payments",
+        label: "Payments",
+        icon: PaymentsIcon,
+        adminOnly: true,
+      },
+      {
+        path: "/admin/invoices",
+        label: "Invoices",
+        icon: InvoicesIcon,
+        adminOnly: true,
+      },
+      {
+        path: "/admin/customers",
+        label: "Customers",
+        icon: CustomersIcon,
+        adminOnly: true,
+      },
       { path: "/admin/messages", label: "Messages", icon: MessagesIcon },
     ],
   },
@@ -455,6 +494,13 @@ const navGroups = [
         icon: ManufacturingIcon,
       },
       { path: "/admin/printers", label: "Printers", icon: PrintersIcon },
+      {
+        path: "/admin/filafarm",
+        label: "FilaFarm",
+        icon: FilaFarmIcon,
+        proOnly: true,
+        feature: "filafarm",
+      },
       { path: "/admin/purchasing", label: "Purchasing", icon: PurchasingIcon },
       { path: "/admin/shipping", label: "Shipping", icon: ShippingIcon },
     ],
@@ -487,7 +533,11 @@ const navGroups = [
   {
     label: "QUALITY",
     items: [
-      { path: "/admin/quality/traceability", label: "Material Traceability", icon: QualityIcon },
+      {
+        path: "/admin/quality/traceability",
+        label: "Material Traceability",
+        icon: QualityIcon,
+      },
     ],
   },
   {
@@ -545,14 +595,19 @@ export default function AdminLayout() {
   const navigate = useNavigate();
   // Persist sidebar state in localStorage
   const [sidebarOpen, setSidebarOpen] = useState(() => {
-    const saved = localStorage.getItem('sidebarOpen');
-    return saved !== null ? JSON.parse(saved) : true;
+    const saved = localStorage.getItem("sidebarOpen");
+    if (saved === null) return true;
+    try {
+      return JSON.parse(saved);
+    } catch {
+      return true;
+    }
   });
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // Save sidebar state to localStorage when it changes
   useEffect(() => {
-    localStorage.setItem('sidebarOpen', JSON.stringify(sidebarOpen));
+    localStorage.setItem("sidebarOpen", JSON.stringify(sidebarOpen));
   }, [sidebarOpen]);
 
   // Auto-refresh tokens when user is active to prevent losing work
@@ -577,7 +632,9 @@ export default function AdminLayout() {
   useEffect(() => {
     const checkCompanyLogo = async () => {
       try {
-        const res = await fetch(`${API_URL}/api/v1/settings/company/logo`, { credentials: 'include' });
+        const res = await fetch(`${API_URL}/api/v1/settings/company/logo`, {
+          credentials: "include",
+        });
         if (res.ok) {
           setCompanyLogoUrl(`${API_URL}/api/v1/settings/company/logo`);
         }
@@ -624,7 +681,7 @@ export default function AdminLayout() {
 
   // Filter nav items based on user role
   const isAdmin = user?.account_type === "admin";
-  const { isPro } = useFeatureFlags();
+  const { isPro, hasFeature } = useFeatureFlags();
 
   const filteredNavGroups = navGroups
     .filter((group) => !group.adminOnly || isAdmin)
@@ -632,6 +689,8 @@ export default function AdminLayout() {
       ...group,
       items: group.items.filter((item) => {
         if (item.adminOnly && !isAdmin) return false;
+        if (item.proOnly && !isPro) return false;
+        if (item.feature && !hasFeature(item.feature)) return false;
         return true;
       }),
     }))
@@ -649,7 +708,7 @@ export default function AdminLayout() {
         const version = await getCurrentVersion();
         setCurrentVersion(version);
       } catch (error) {
-        console.error('Failed to fetch version:', error);
+        console.error("Failed to fetch version:", error);
       }
     };
     fetchVersion();
@@ -705,12 +764,15 @@ export default function AdminLayout() {
       >
         Skip to main content
       </a>
-      <div className="min-h-screen flex" style={{ backgroundColor: 'var(--bg-primary)' }}>
+      <div
+        className="min-h-screen flex"
+        style={{ backgroundColor: "var(--bg-primary)" }}
+      >
         {/* Mobile menu button */}
         <button
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
           className="md:hidden fixed top-4 left-4 z-50 p-2 rounded-lg text-white transition-all"
-          style={{ backgroundColor: 'var(--bg-card)' }}
+          style={{ backgroundColor: "var(--bg-card)" }}
           aria-label="Open navigation menu"
         >
           <MenuIcon />
@@ -724,20 +786,30 @@ export default function AdminLayout() {
           >
             <aside
               className="w-64 h-full"
-              style={{ backgroundColor: 'var(--bg-secondary)', borderRight: '1px solid var(--border-subtle)' }}
+              style={{
+                backgroundColor: "var(--bg-secondary)",
+                borderRight: "1px solid var(--border-subtle)",
+              }}
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="p-4 flex items-center justify-between" style={{ borderBottom: '1px solid var(--border-subtle)' }}>
+              <div
+                className="p-4 flex items-center justify-between"
+                style={{ borderBottom: "1px solid var(--border-subtle)" }}
+              >
                 <Link to="/admin" className="flex items-center gap-3">
                   <div className="logo-container">
-                    <img src={companyLogoUrl || logoBLB3D} alt="Company Logo" className="h-10 w-auto logo-glow" />
+                    <img
+                      src={companyLogoUrl || logoBLB3D}
+                      alt="Company Logo"
+                      className="h-10 w-auto logo-glow"
+                    />
                   </div>
                   <img src={logoNavbar} alt="FilaOps" className="h-32" />
                 </Link>
                 <button
                   onClick={() => setMobileMenuOpen(false)}
                   className="p-2 rounded-lg transition-colors"
-                  style={{ color: 'var(--text-secondary)' }}
+                  style={{ color: "var(--text-secondary)" }}
                 >
                   <svg
                     className="w-6 h-6"
@@ -758,7 +830,10 @@ export default function AdminLayout() {
                 {filteredNavGroups.map((group, groupIndex) => (
                   <div key={groupIndex} className={group.label ? "mt-4" : ""}>
                     {group.label && (
-                      <div className="px-3 py-2 text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
+                      <div
+                        className="px-3 py-2 text-xs font-semibold uppercase tracking-wider"
+                        style={{ color: "var(--text-muted)" }}
+                      >
                         {group.label}
                       </div>
                     )}
@@ -771,17 +846,26 @@ export default function AdminLayout() {
                           onClick={() => setMobileMenuOpen(false)}
                           className={({ isActive }) =>
                             `flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all ${
-                              isActive
-                                ? "nav-item-active"
-                                : "nav-item"
+                              isActive ? "nav-item-active" : "nav-item"
                             }`
                           }
                         >
                           <item.icon />
                           <span>{item.label}</span>
-                          {group.proOnly && !isPro && (
-                            <svg className="w-3 h-3 ml-auto" style={{ color: 'var(--text-muted)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                          {(group.proOnly || item.proOnly) && !isPro && (
+                            <svg
+                              className="w-3 h-3 ml-auto"
+                              style={{ color: "var(--text-muted)" }}
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+                              />
                             </svg>
                           )}
                         </NavLink>
@@ -799,31 +883,49 @@ export default function AdminLayout() {
           className={`hidden md:flex ${
             sidebarOpen ? "w-64" : "w-20"
           } transition-all duration-300 flex-col h-screen sticky top-0`}
-          style={{ backgroundColor: 'var(--bg-secondary)', borderRight: '1px solid var(--border-subtle)' }}
+          style={{
+            backgroundColor: "var(--bg-secondary)",
+            borderRight: "1px solid var(--border-subtle)",
+          }}
         >
-          <div className="p-4 flex items-center justify-between" style={{ borderBottom: '1px solid var(--border-subtle)' }}>
-            <Link to="/admin" className={`flex items-center ${sidebarOpen ? 'gap-3' : 'justify-center w-full'}`}>
+          <div
+            className="p-4 flex items-center justify-between"
+            style={{ borderBottom: "1px solid var(--border-subtle)" }}
+          >
+            <Link
+              to="/admin"
+              className={`flex items-center ${sidebarOpen ? "gap-3" : "justify-center w-full"}`}
+            >
               <div className="logo-container">
-                <img src={companyLogoUrl || logoBLB3D} alt="Company Logo" className="h-10 w-auto logo-glow" />
+                <img
+                  src={companyLogoUrl || logoBLB3D}
+                  alt="Company Logo"
+                  className="h-10 w-auto logo-glow"
+                />
               </div>
-              {sidebarOpen && <img src={logoNavbar} alt="FilaOps" className="h-32" />}
+              {sidebarOpen && (
+                <img src={logoNavbar} alt="FilaOps" className="h-32" />
+              )}
             </Link>
             {sidebarOpen && (
               <button
                 onClick={() => setSidebarOpen(!sidebarOpen)}
                 className="p-2 rounded-lg transition-colors"
-                style={{ color: 'var(--text-secondary)' }}
+                style={{ color: "var(--text-secondary)" }}
               >
                 <MenuIcon />
               </button>
             )}
           </div>
           {!sidebarOpen && (
-            <div className="p-2 flex justify-center" style={{ borderBottom: '1px solid var(--border-subtle)' }}>
+            <div
+              className="p-2 flex justify-center"
+              style={{ borderBottom: "1px solid var(--border-subtle)" }}
+            >
               <button
                 onClick={() => setSidebarOpen(!sidebarOpen)}
                 className="p-2 rounded-lg transition-colors"
-                style={{ color: 'var(--text-secondary)' }}
+                style={{ color: "var(--text-secondary)" }}
               >
                 <MenuIcon />
               </button>
@@ -833,7 +935,10 @@ export default function AdminLayout() {
             {filteredNavGroups.map((group, groupIndex) => (
               <div key={groupIndex} className={group.label ? "mt-4" : ""}>
                 {group.label && sidebarOpen && (
-                  <div className="px-3 py-2 text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
+                  <div
+                    className="px-3 py-2 text-xs font-semibold uppercase tracking-wider"
+                    style={{ color: "var(--text-muted)" }}
+                  >
                     {group.label}
                   </div>
                 )}
@@ -848,17 +953,26 @@ export default function AdminLayout() {
                       title={!sidebarOpen ? item.label : undefined}
                       className={({ isActive }) =>
                         `flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all ${
-                          isActive
-                            ? "nav-item-active"
-                            : "nav-item"
+                          isActive ? "nav-item-active" : "nav-item"
                         } ${!sidebarOpen ? "justify-center" : ""}`
                       }
                     >
                       <item.icon />
                       {sidebarOpen && <span>{item.label}</span>}
-                      {sidebarOpen && group.proOnly && !isPro && (
-                        <svg className="w-3 h-3 ml-auto" style={{ color: 'var(--text-muted)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                      {sidebarOpen && (group.proOnly || item.proOnly) && !isPro && (
+                        <svg
+                          className="w-3 h-3 ml-auto"
+                          style={{ color: "var(--text-muted)" }}
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+                          />
                         </svg>
                       )}
                     </NavLink>
@@ -871,14 +985,20 @@ export default function AdminLayout() {
         <div className="flex-1 flex flex-col">
           <header
             className="sticky top-0 z-30 glass px-6 py-4"
-            style={{ borderBottom: '1px solid var(--border-subtle)' }}
+            style={{ borderBottom: "1px solid var(--border-subtle)" }}
           >
             <div className="flex justify-between items-center">
               <div className="flex items-center gap-3">
-                <h1 className="text-lg font-semibold font-display" style={{ color: 'var(--text-primary)' }}>
+                <h1
+                  className="text-lg font-semibold font-display"
+                  style={{ color: "var(--text-primary)" }}
+                >
                   ERP
                 </h1>
-                <span className="text-xs font-mono-data" style={{ color: 'var(--text-muted)' }}>
+                <span
+                  className="text-xs font-mono-data"
+                  style={{ color: "var(--text-muted)" }}
+                >
                   v{formatVersion(currentVersion)}
                 </span>
                 <SecurityBadge
@@ -893,21 +1013,36 @@ export default function AdminLayout() {
                     disabled={portalLinkLoading}
                     className="flex items-center gap-2 text-sm px-3 py-1.5 rounded-lg transition-all"
                     style={{
-                      color: 'var(--accent-primary)',
-                      border: '1px solid var(--accent-primary)',
+                      color: "var(--accent-primary)",
+                      border: "1px solid var(--accent-primary)",
                       opacity: portalLinkLoading ? 0.6 : 1,
                     }}
                     title="Open B2B Portal Admin"
                   >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                    <svg
+                      className="w-4 h-4"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+                      />
                     </svg>
-                    <span>{portalLinkLoading ? "Opening..." : "Portal Admin"}</span>
+                    <span>
+                      {portalLinkLoading ? "Opening..." : "Portal Admin"}
+                    </span>
                   </button>
                 )}
                 {user && (
-                  <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-                    <span style={{ color: 'var(--text-primary)' }}>
+                  <span
+                    className="text-sm"
+                    style={{ color: "var(--text-secondary)" }}
+                  >
+                    <span style={{ color: "var(--text-primary)" }}>
                       {user.first_name} {user.last_name}
                     </span>
                   </span>
@@ -915,7 +1050,7 @@ export default function AdminLayout() {
                 <button
                   onClick={handleLogout}
                   className="flex items-center gap-2 text-sm transition-colors hover:text-red-400"
-                  style={{ color: 'var(--text-secondary)' }}
+                  style={{ color: "var(--text-secondary)" }}
                 >
                   <LogoutIcon />
                   <span>Logout</span>
@@ -923,7 +1058,11 @@ export default function AdminLayout() {
               </div>
             </div>
           </header>
-          <main id="main-content" className="flex-1 p-6 overflow-auto grid-pattern" tabIndex="-1">
+          <main
+            id="main-content"
+            className="flex-1 p-6 overflow-auto grid-pattern"
+            tabIndex="-1"
+          >
             <Outlet />
           </main>
         </div>
