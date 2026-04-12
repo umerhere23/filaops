@@ -256,6 +256,14 @@ def create_production_order(
         created_by=created_by,
     )
 
+    # Auto-estimate costs if operations exist
+    if order.operations:
+        from app.services.cost_estimation_service import estimate_production_order_cost
+        try:
+            estimate_production_order_cost(db, order)
+        except Exception:
+            logger.exception("Cost estimation failed for production order id=%s code=%s", order.id, order.code)
+
     return order
 
 
@@ -488,6 +496,13 @@ def complete_production_order(
                 op.status = "complete"
                 if not op.actual_end:
                     op.actual_end = datetime.now(timezone.utc)
+
+        # Recalculate actual costs from consumed quantities and actual times
+        try:
+            from app.services.cost_estimation_service import recalculate_actual_cost
+            recalculate_actual_cost(db, order)
+        except Exception as e:
+            logger.warning("Actual cost recalculation failed for %s: %s", order.code, e)
 
     if notes:
         if order.notes:
@@ -1525,47 +1540,64 @@ def get_required_orders(db: Session, order_id: int) -> dict:
 # =============================================================================
 
 def get_cost_breakdown(db: Session, order_id: int) -> dict:
-    """Get cost breakdown for a production order."""
+    """Get cost breakdown for a production order.
+
+    Uses get_effective_cost_per_inventory_unit() for material pricing and
+    work center rates (machine + labor + overhead) for labor/machine costing.
+    """
+    from app.services.inventory_service import get_effective_cost_per_inventory_unit
+
     order = get_production_order(db, order_id)
 
-    # Material costs
+    # Material costs — use proper UOM-aware cost per inventory unit
     material_costs = []
     total_material_cost = Decimal("0")
 
     for op in order.operations:
         for mat in op.materials:
-            component = db.query(Product).filter(Product.id == mat.component_id).first()
-            if component:
-                # Product model has standard_cost, average_cost, last_cost (not unit_cost)
-                unit_cost = Decimal(str(
-                    component.standard_cost or component.average_cost or component.last_cost or 0
-                ))
-                qty = mat.quantity_consumed or mat.quantity_required
-                line_cost = unit_cost * qty
+            if mat.component:
+                unit_cost = get_effective_cost_per_inventory_unit(mat.component) or Decimal("0")
+                qty = mat.quantity_consumed if mat.status == "consumed" else mat.quantity_required
+                line_cost = unit_cost * Decimal(str(qty))
                 total_material_cost += line_cost
 
                 material_costs.append({
-                    "component_sku": component.sku,
-                    "component_name": component.name,
+                    "component_sku": mat.component.sku,
+                    "component_name": mat.component.name,
                     "quantity": float(qty),
                     "unit_cost": float(unit_cost),
                     "total_cost": float(line_cost),
                 })
 
-    # Labor costs (estimated from operation times)
+    # Labor costs — use work center rates instead of hardcoded value
     labor_costs = []
     total_labor_cost = Decimal("0")
-    hourly_rate = Decimal("25")  # Default rate
 
     for op in order.operations:
-        minutes = op.actual_run_minutes or op.planned_run_minutes or 0
-        hours = Decimal(str(minutes)) / Decimal("60")
+        minutes = op.actual_run_minutes if op.actual_run_minutes is not None else (op.planned_run_minutes or 0)
+        setup = op.actual_setup_minutes if op.actual_setup_minutes is not None else (op.planned_setup_minutes or 0)
+        total_minutes = Decimal(str(minutes)) + Decimal(str(setup))
+        hours = total_minutes / Decimal("60")
+
+        # Get rate from work center (machine + labor + overhead)
+        wc = op.work_center
+        if wc:
+            machine = Decimal(str(wc.machine_rate_per_hour or 0))
+            labor = Decimal(str(wc.labor_rate_per_hour or 0))
+            overhead = Decimal(str(wc.overhead_rate_per_hour or 0))
+            hourly_rate = machine + labor + overhead
+            # Fall back to simplified hourly_rate if component rates are all zero
+            if hourly_rate == Decimal("0"):
+                hourly_rate = Decimal(str(wc.hourly_rate or 0))
+        else:
+            hourly_rate = Decimal("0")
+
         cost = hours * hourly_rate
         total_labor_cost += cost
 
         labor_costs.append({
             "operation": op.operation_name,
-            "minutes": float(minutes),
+            "minutes": float(total_minutes),
             "hourly_rate": float(hourly_rate),
             "cost": float(cost),
         })
