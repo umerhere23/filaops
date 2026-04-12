@@ -2,14 +2,14 @@
 Quality Management Service
 
 Provides inspection queue, quality metrics, and scrap analysis
-by aggregating data from production orders, scrap records, and serial numbers.
-No new models — reads existing QC data from ProductionOrder, ScrapRecord, etc.
+by aggregating data from production orders, scrap records, scrap reasons,
+and related product data.
+No new models — reads existing QC data from ProductionOrder, ScrapRecord,
+ScrapReason, etc.
 """
 from datetime import datetime, timedelta, timezone
-from decimal import Decimal
-from typing import Optional
 
-from sqlalchemy import func, case, and_, literal
+from sqlalchemy import func, case, literal
 from sqlalchemy.orm import Session, joinedload
 
 from app.models.production_order import (
@@ -18,10 +18,6 @@ from app.models.production_order import (
     ScrapRecord,
 )
 from app.models.scrap_reason import ScrapReason
-from app.models.product import Product
-from app.logging_config import get_logger
-
-logger = get_logger(__name__)
 
 
 def get_inspection_queue(
@@ -33,7 +29,7 @@ def get_inspection_queue(
     Get production orders awaiting QC inspection.
 
     Returns orders with qc_status in ('pending', 'in_progress'),
-    sorted by priority (highest first) then due_date (earliest first).
+    sorted by priority ascending (1 is highest) then due_date (earliest first).
     """
     query = (
         db.query(ProductionOrder)
@@ -93,9 +89,10 @@ def get_quality_metrics(db: Session, days: int = 30) -> dict:
     )
 
     counts = {row.qc_status: row.cnt for row in result_counts}
-    passed = counts.get("passed", 0) + counts.get("waived", 0)
+    passed = counts.get("passed", 0)
     failed = counts.get("failed", 0)
-    total_inspections = passed + failed
+    waived = counts.get("waived", 0)
+    total_inspections = passed + failed + waived
 
     first_pass_yield = (
         round((passed / total_inspections) * 100, 1)
@@ -127,8 +124,8 @@ def get_quality_metrics(db: Session, days: int = 30) -> dict:
     scrapped_qty = float(qty_agg.scrapped) if qty_agg else 0
 
     scrap_rate = (
-        round((scrapped_qty / (completed_qty + scrapped_qty)) * 100, 1)
-        if (completed_qty + scrapped_qty) > 0
+        round((scrapped_qty / completed_qty) * 100, 1)
+        if completed_qty > 0
         else None
     )
 
@@ -234,13 +231,14 @@ def get_scrap_summary(db: Session, days: int = 30) -> list:
 
     rows = (
         db.query(
-            ScrapReason.code,
-            ScrapReason.name,
+            func.coalesce(ScrapReason.code, "UNCAT").label("code"),
+            func.coalesce(ScrapReason.name, "Uncategorized").label("name"),
             func.count().label("count"),
             func.coalesce(func.sum(scrap_event.c.fg_qty), 0).label("total_quantity"),
             func.coalesce(func.sum(scrap_event.c.event_cost), 0).label("total_cost"),
         )
-        .join(scrap_event, scrap_event.c.scrap_reason_id == ScrapReason.id)
+        .select_from(scrap_event)
+        .outerjoin(ScrapReason, scrap_event.c.scrap_reason_id == ScrapReason.id)
         .group_by(ScrapReason.code, ScrapReason.name)
         .order_by(func.sum(scrap_event.c.event_cost).desc())
         .all()

@@ -28,19 +28,31 @@ export default function QualityDashboard() {
   const fetchAll = async () => {
     try {
       setLoading(true);
-      const [metricsRes, queueRes, recentRes, scrapRes] =
-        await Promise.allSettled([
+      setError(null);
+
+      const results = await Promise.allSettled([
           api.get("/api/v1/quality/metrics?days=30"),
           api.get("/api/v1/quality/inspection-queue?limit=10"),
           api.get("/api/v1/quality/recent-inspections?limit=10"),
           api.get("/api/v1/quality/scrap-summary?days=30"),
         ]);
 
+      const [metricsRes, queueRes, recentRes, scrapRes] = results;
+
       if (metricsRes.status === "fulfilled") setMetrics(metricsRes.value);
       if (queueRes.status === "fulfilled") setQueue(queueRes.value);
       if (recentRes.status === "fulfilled")
         setRecentInspections(recentRes.value);
       if (scrapRes.status === "fulfilled") setScrapSummary(scrapRes.value);
+
+      const rejected = results.filter((r) => r.status === "rejected");
+      if (rejected.length === results.length) {
+        setError("Failed to load quality data");
+      } else if (rejected.length > 0) {
+        setError(
+          "Some quality data could not be loaded. Displayed information may be incomplete."
+        );
+      }
     } catch (err) {
       setError("Failed to load quality data");
       console.error(err);
@@ -84,7 +96,7 @@ export default function QualityDashboard() {
     );
   }
 
-  if (error) {
+  if (error && !metrics && queue.items.length === 0) {
     return (
       <div className="p-6">
         <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-4 text-red-400">
@@ -104,6 +116,13 @@ export default function QualityDashboard() {
         <span className="text-sm text-[var(--text-muted)]">Last 30 days</span>
       </div>
 
+      {/* Partial error banner */}
+      {error && (
+        <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-3 text-amber-400 text-sm">
+          {error}
+        </div>
+      )}
+
       {/* Stat Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
@@ -115,11 +134,13 @@ export default function QualityDashboard() {
               : "—"
           }
           color={
-            metrics?.first_pass_yield >= 90
-              ? "success"
-              : metrics?.first_pass_yield >= 75
-                ? "warning"
-                : "danger"
+            metrics?.first_pass_yield == null
+              ? "neutral"
+              : metrics.first_pass_yield >= 90
+                ? "success"
+                : metrics.first_pass_yield >= 75
+                  ? "warning"
+                  : "danger"
           }
         />
         <StatCard
@@ -133,9 +154,11 @@ export default function QualityDashboard() {
           title="Scrap Rate"
           value={metrics?.scrap_rate != null ? `${metrics.scrap_rate}%` : "—"}
           color={
-            metrics?.scrap_rate != null && metrics.scrap_rate > 5
-              ? "danger"
-              : "success"
+            metrics?.scrap_rate == null
+              ? "neutral"
+              : metrics.scrap_rate > 5
+                ? "danger"
+                : "success"
           }
         />
         <StatCard

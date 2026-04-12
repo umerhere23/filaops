@@ -117,6 +117,7 @@ export default function ProductionOrderModal({
 
   const openSpoolPicker = async (componentId) => {
     setSpoolPickerFor(componentId);
+    setAvailableSpools([]);
     setSpoolLoading(true);
     try {
       const res = await fetch(
@@ -132,6 +133,7 @@ export default function ProductionOrderModal({
   };
 
   const assignSpool = async (spoolId) => {
+    if (spoolLoading) return;
     try {
       setSpoolLoading(true);
       const res = await fetch(
@@ -663,7 +665,7 @@ export default function ProductionOrderModal({
               <div className="bg-gray-800/30 rounded-lg p-4 space-y-2">
                 {allMaterials.slice(0, 5).map((mat, idx) => {
                   const matSpool = assignedSpools.find(
-                    (s) => s.product_name === (mat.component_name || mat.component_sku)
+                    (s) => s.product_id === mat.component_id
                   );
                   return (
                     <div key={idx} className="space-y-1">
@@ -731,11 +733,12 @@ export default function ProductionOrderModal({
                     <button
                       key={spool.id}
                       onClick={() => assignSpool(spool.id)}
-                      className="w-full flex items-center justify-between px-3 py-2 rounded hover:bg-gray-700 text-sm transition-colors"
+                      disabled={spoolLoading}
+                      className="w-full flex items-center justify-between px-3 py-2 rounded hover:bg-gray-700 text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       <span className="text-white">{spool.spool_number}</span>
                       <span className="text-gray-400">
-                        {spool.current_weight_kg.toFixed(2)} kg
+                        {(spool.current_weight_kg ?? 0).toFixed(2)} kg
                         {spool.supplier_lot_number && (
                           <span className="ml-2 text-gray-500">Lot: {spool.supplier_lot_number}</span>
                         )}

@@ -223,7 +223,10 @@ class TestRecentInspections:
 class TestScrapSummary:
     """GET /api/v1/quality/scrap-summary"""
 
-    def test_empty_summary(self, client):
+    def test_empty_summary(self, client, db):
+        from app.models.production_order import ScrapRecord
+        db.query(ScrapRecord).delete()
+        db.flush()
         resp = client.get("/api/v1/quality/scrap-summary")
         assert resp.status_code == 200
         assert resp.json() == []
@@ -231,6 +234,9 @@ class TestScrapSummary:
     def test_groups_by_reason(self, client, db, make_product, make_production_order):
         from app.models.scrap_reason import ScrapReason
         from app.models.production_order import ScrapRecord
+
+        db.query(ScrapRecord).delete()
+        db.flush()
 
         product = make_product()
         po = make_production_order(product_id=product.id, status="qc_hold")
