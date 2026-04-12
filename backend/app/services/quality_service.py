@@ -9,10 +9,14 @@ from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from typing import Optional
 
-from sqlalchemy import func, case, and_
+from sqlalchemy import func, case, and_, literal
 from sqlalchemy.orm import Session, joinedload
 
-from app.models.production_order import ProductionOrder, ScrapRecord
+from app.models.production_order import (
+    ProductionOrder,
+    ProductionOrderOperation,
+    ScrapRecord,
+)
 from app.models.scrap_reason import ScrapReason
 from app.models.product import Product
 from app.logging_config import get_logger
@@ -184,21 +188,61 @@ def get_recent_inspections(db: Session, limit: int = 20) -> list:
 def get_scrap_summary(db: Session, days: int = 30) -> list:
     """
     Get scrap breakdown grouped by reason for the given period.
+
+    Aggregates at the scrap-event level (distinct PO + operation + reason)
+    so that quantities reflect finished-goods pieces, not component UOM.
+    ScrapRecord.quantity is in component units (e.g. grams); the
+    operation-level quantity_scrapped is in finished-goods units.
     """
     cutoff = datetime.now(timezone.utc) - timedelta(days=days)
+
+    # Inner query: one row per distinct scrap event (PO + op + reason),
+    # pulling the FG qty from the operation when available, falling back
+    # to ScrapRecord.quantity when there's no operation link.
+    # When production_operation_id is NULL, each ScrapRecord is its own
+    # event, so we add a discriminator to prevent them from collapsing.
+    event_discriminator = case(
+        (ScrapRecord.production_operation_id.is_(None), ScrapRecord.id),
+        else_=literal(0),
+    )
+    fg_qty_expr = func.coalesce(
+        func.min(ProductionOrderOperation.quantity_scrapped),
+        func.sum(ScrapRecord.quantity),
+    )
+
+    scrap_event = (
+        db.query(
+            ScrapRecord.scrap_reason_id,
+            ScrapRecord.production_order_id,
+            ScrapRecord.production_operation_id,
+            fg_qty_expr.label("fg_qty"),
+            func.sum(ScrapRecord.total_cost).label("event_cost"),
+        )
+        .outerjoin(
+            ProductionOrderOperation,
+            ProductionOrderOperation.id == ScrapRecord.production_operation_id,
+        )
+        .filter(ScrapRecord.created_at >= cutoff)
+        .group_by(
+            ScrapRecord.scrap_reason_id,
+            ScrapRecord.production_order_id,
+            ScrapRecord.production_operation_id,
+            event_discriminator,
+        )
+        .subquery()
+    )
 
     rows = (
         db.query(
             ScrapReason.code,
             ScrapReason.name,
-            func.count(ScrapRecord.id).label("count"),
-            func.coalesce(func.sum(ScrapRecord.quantity), 0).label("total_quantity"),
-            func.coalesce(func.sum(ScrapRecord.total_cost), 0).label("total_cost"),
+            func.count().label("count"),
+            func.coalesce(func.sum(scrap_event.c.fg_qty), 0).label("total_quantity"),
+            func.coalesce(func.sum(scrap_event.c.event_cost), 0).label("total_cost"),
         )
-        .join(ScrapRecord, ScrapRecord.scrap_reason_id == ScrapReason.id)
-        .filter(ScrapRecord.created_at >= cutoff)
+        .join(scrap_event, scrap_event.c.scrap_reason_id == ScrapReason.id)
         .group_by(ScrapReason.code, ScrapReason.name)
-        .order_by(func.sum(ScrapRecord.total_cost).desc())
+        .order_by(func.sum(scrap_event.c.event_cost).desc())
         .all()
     )
 
