@@ -51,16 +51,11 @@ export default function QualityDashboard() {
 
   const qcBadge = (status) => {
     const styles = {
-      passed:
-        "bg-green-500/20 text-green-400 border border-green-500/30",
-      failed:
-        "bg-red-500/20 text-red-400 border border-red-500/30",
-      waived:
-        "bg-amber-500/20 text-amber-400 border border-amber-500/30",
-      pending:
-        "bg-blue-500/20 text-blue-400 border border-blue-500/30",
-      in_progress:
-        "bg-cyan-500/20 text-cyan-400 border border-cyan-500/30",
+      passed: "bg-green-500/20 text-green-400 border border-green-500/30",
+      failed: "bg-red-500/20 text-red-400 border border-red-500/30",
+      waived: "bg-amber-500/20 text-amber-400 border border-amber-500/30",
+      pending: "bg-blue-500/20 text-blue-400 border border-blue-500/30",
+      in_progress: "bg-cyan-500/20 text-cyan-400 border border-cyan-500/30",
     };
     return (
       <span
@@ -132,14 +127,11 @@ export default function QualityDashboard() {
           title="Pending Inspections"
           value={metrics?.pending_inspections ?? 0}
           color={metrics?.pending_inspections > 5 ? "warning" : "primary"}
-          to="/admin/quality/traceability"
         />
         <StatCard
           variant="gradient"
           title="Scrap Rate"
-          value={
-            metrics?.scrap_rate != null ? `${metrics.scrap_rate}%` : "—"
-          }
+          value={metrics?.scrap_rate != null ? `${metrics.scrap_rate}%` : "—"}
           color={
             metrics?.scrap_rate != null && metrics.scrap_rate > 5
               ? "danger"
