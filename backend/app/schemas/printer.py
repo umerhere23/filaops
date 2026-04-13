@@ -95,6 +95,10 @@ class PrinterCreate(PrinterBase):
     """Create a new printer"""
     connection_config: Optional[Dict[str, Any]] = Field(default_factory=dict)
     capabilities: Optional[Dict[str, Any]] = Field(default_factory=dict)
+    filament_diameters: Optional[List[float]] = Field(
+        default_factory=lambda: [1.75],
+        description="Supported filament diameters in mm (e.g. [1.75], [2.85], or both)",
+    )
 
 
 class PrinterUpdate(BaseModel):
@@ -112,6 +116,7 @@ class PrinterUpdate(BaseModel):
     active: Optional[bool] = None
     connection_config: Optional[Dict[str, Any]] = None
     capabilities: Optional[Dict[str, Any]] = None
+    filament_diameters: Optional[List[float]] = None
 
 
 class PrinterResponse(PrinterBase):
@@ -120,6 +125,7 @@ class PrinterResponse(PrinterBase):
     status: PrinterStatus = PrinterStatus.OFFLINE
     connection_config: Dict[str, Any] = {}
     capabilities: Dict[str, Any] = {}
+    filament_diameters: Optional[List[float]] = None
     last_seen: Optional[datetime] = None
     created_at: datetime
     updated_at: datetime

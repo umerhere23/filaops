@@ -25,6 +25,7 @@ export default function PrinterModal({ printer, onClose, onSave, brandInfo }) {
     work_center_id: printer?.work_center_id || "",
     notes: printer?.notes || "",
     active: printer?.active !== false,
+    filament_diameters: printer?.filament_diameters || printer?.capabilities?.filament_diameters || [1.75],
   });
 
   const isEdit = !!printer;
@@ -65,6 +66,7 @@ export default function PrinterModal({ printer, onClose, onSave, brandInfo }) {
       const payload = {
         ...rest,
         connection_config: access_code ? { access_code } : {},
+        filament_diameters: form.filament_diameters,
       };
 
       const res = await fetch(url, {
@@ -237,6 +239,38 @@ export default function PrinterModal({ printer, onClose, onSave, brandInfo }) {
               placeholder="Optional"
               className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
+          </div>
+
+          {/* Supported filament diameters */}
+          <div>
+            <label className="block text-sm text-gray-300 mb-2">Supported Diameters</label>
+            <div className="flex gap-4">
+              {[1.75, 2.85].map((diameter) => {
+                const checked = form.filament_diameters.includes(diameter);
+                return (
+                  <label key={diameter} className="inline-flex items-center gap-2 text-sm text-gray-300">
+                    <input
+                      type="checkbox"
+                      checked={checked}
+                      onChange={(e) => {
+                        const current = new Set(form.filament_diameters);
+                        if (e.target.checked) {
+                          current.add(diameter);
+                        } else if (current.size > 1) {
+                          current.delete(diameter);
+                        }
+                        setForm({ ...form, filament_diameters: Array.from(current) });
+                      }}
+                      className="w-4 h-4 rounded bg-gray-800 border-gray-700 text-blue-500 focus:ring-blue-500"
+                    />
+                    {diameter}mm
+                  </label>
+                );
+              })}
+            </div>
+            <p className="text-xs text-gray-500 mt-1">
+              Leave at 1.75mm unless this printer is configured for 2.85mm filament.
+            </p>
           </div>
 
           {/* Location */}

@@ -533,6 +533,7 @@ def get_portal_material_options(db: Session) -> List[dict]:
             "price_multiplier": float(material.price_multiplier),
             "strength_rating": material.strength_rating,
             "requires_enclosure": material.requires_enclosure,
+            "filament_diameter": float(material.filament_diameter or 1.75),
             "colors": color_list
         })
 

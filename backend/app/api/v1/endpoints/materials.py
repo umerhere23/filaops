@@ -54,6 +54,7 @@ class MaterialTypeOption(BaseModel):
     price_multiplier: float
     strength_rating: int | None
     requires_enclosure: bool
+    filament_diameter: float = 1.75
     colors: List[ColorOption]
 
 
@@ -110,6 +111,7 @@ class MaterialTypeItem(BaseModel):
     price_multiplier: float
     strength_rating: int | None
     requires_enclosure: bool
+    filament_diameter: float = 1.75
 
 
 class MaterialTypesResponse(BaseModel):
@@ -153,6 +155,7 @@ class MaterialPricingResponse(BaseModel):
     bed_temp_min: int | None
     bed_temp_max: int | None
     requires_enclosure: bool
+    filament_diameter: float = 1.75
 
 
 # ============================================================================
@@ -178,6 +181,7 @@ def get_material_options(
                     price_multiplier=m["price_multiplier"],
                     strength_rating=m.get("strength_rating"),
                     requires_enclosure=m.get("requires_enclosure", False),
+                    filament_diameter=float(m.get("filament_diameter") or 1.75),
                     colors=[
                         ColorOption(
                             code=c["code"],
@@ -218,6 +222,7 @@ def list_material_types(
                     "price_multiplier": float(m.price_multiplier),
                     "strength_rating": m.strength_rating,
                     "requires_enclosure": m.requires_enclosure,
+                    "filament_diameter": float(m.filament_diameter or 1.75),
                 }
                 for m in materials
             ]
@@ -448,6 +453,7 @@ def get_material_pricing(
             "bed_temp_min": material.bed_temp_min,
             "bed_temp_max": material.bed_temp_max,
             "requires_enclosure": material.requires_enclosure,
+            "filament_diameter": float(material.filament_diameter or 1.75),
         }
     except HTTPException:
         raise

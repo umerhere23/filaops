@@ -47,6 +47,17 @@ router = APIRouter()
 logger = get_logger(__name__)
 
 
+def _merge_capabilities(
+    capabilities: Optional[dict],
+    filament_diameters: Optional[List[float]],
+) -> dict:
+    """Store structured capability fields in capabilities JSON."""
+    merged = dict(capabilities or {})
+    if filament_diameters is not None:
+        merged["filament_diameters"] = filament_diameters
+    return merged
+
+
 def _generate_printer_code(db: Session, prefix: str = "PRT") -> str:
     """Generate next printer code (PRT-001, PRT-002, etc.)"""
     last = db.query(Printer).filter(
@@ -64,6 +75,7 @@ def _generate_printer_code(db: Session, prefix: str = "PRT") -> str:
 
 def _printer_to_response(printer: Printer) -> PrinterResponse:
     """Convert Printer model to response schema"""
+    capabilities = printer.capabilities or {}
     return PrinterResponse(
         id=printer.id,
         code=printer.code,
@@ -79,7 +91,8 @@ def _printer_to_response(printer: Printer) -> PrinterResponse:
         active=printer.active,
         status=PrinterStatus(printer.status) if printer.status else PrinterStatus.OFFLINE,
         connection_config=printer.connection_config or {},
-        capabilities=printer.capabilities or {},
+        capabilities=capabilities,
+        filament_diameters=capabilities.get("filament_diameters"),
         last_seen=printer.last_seen,
         created_at=printer.created_at,
         updated_at=printer.updated_at,
@@ -341,7 +354,7 @@ async def create_printer(
         notes=data.notes,
         active=data.active if data.active is not None else True,
         connection_config=data.connection_config or {},
-        capabilities=data.capabilities or {},
+        capabilities=_merge_capabilities(data.capabilities, data.filament_diameters),
         status="offline",
         created_at=datetime.now(timezone.utc),
         updated_at=datetime.now(timezone.utc),
@@ -377,6 +390,15 @@ async def update_printer(
 
     # Update fields
     update_data = data.model_dump(exclude_unset=True)
+    capabilities_update = update_data.pop("capabilities", None)
+    filament_diameters = update_data.pop("filament_diameters", None)
+
+    if capabilities_update is not None or filament_diameters is not None:
+        printer.capabilities = _merge_capabilities(
+            {**(printer.capabilities or {}), **(capabilities_update or {})},
+            filament_diameters,
+        )
+
     for field, value in update_data.items():
         if field == "brand" and value:
             value = value.value if hasattr(value, "value") else value

@@ -38,6 +38,7 @@ from app.services.resource_scheduling import (
     schedule_operation as schedule_operation_service,
     find_next_available_slot,
 )
+from app.services.compatibility_service import check_operation_compatibility
 from app.services.operation_generation import (
     generate_operations_manual,
 )
@@ -466,9 +467,24 @@ def schedule_operation_endpoint(
             detail=f"Scheduling conflict with {len(conflicts)} existing operation(s)"
         )
 
+    compatibility_result = check_operation_compatibility(db, op)
+    compatibility_warnings = [
+        {
+            "severity": issue.severity,
+            "check": issue.check,
+            "message": issue.message,
+            "material_name": issue.material_name,
+            "printer_name": issue.printer_name,
+        }
+        for issue in compatibility_result.issues
+    ]
+
     db.commit()
 
-    return ScheduleOperationResponse(success=True)
+    return ScheduleOperationResponse(
+        success=True,
+        compatibility_warnings=compatibility_warnings,
+    )
 
 
 @router.post(

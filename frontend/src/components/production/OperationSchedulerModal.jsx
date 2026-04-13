@@ -62,6 +62,7 @@ export default function OperationSchedulerModal({
   const [endTime, setEndTime] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
+  const [compatibilityWarnings, setCompatibilityWarnings] = useState([]);
 
   // Get available resources for the operation's work center
   const { resources, loading: loadingResources } = useResources(operation?.work_center_id);
@@ -106,6 +107,10 @@ export default function OperationSchedulerModal({
     }
   }, [isOpen, operation]);
 
+  useEffect(() => {
+    setCompatibilityWarnings([]);
+  }, [resourceId, startTime, endTime]);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -145,8 +150,14 @@ export default function OperationSchedulerModal({
         throw new Error(data.detail || 'Failed to schedule operation');
       }
 
+      const data = await res.json();
+      const warnings = data.compatibility_warnings || [];
+      setCompatibilityWarnings(warnings);
+
       onScheduled?.();
-      onClose();
+      if (warnings.length === 0) {
+        onClose();
+      }
     } catch (err) {
       setError(err.message);
     } finally {
@@ -159,6 +170,7 @@ export default function OperationSchedulerModal({
     setStartTime('');
     setEndTime('');
     setError(null);
+    setCompatibilityWarnings([]);
     onClose();
   };
 
@@ -262,6 +274,22 @@ export default function OperationSchedulerModal({
             </div>
           ) : (
             <ConflictAlert conflicts={conflicts} />
+          )}
+
+          {compatibilityWarnings.length > 0 && (
+            <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-4">
+              <h4 className="text-yellow-300 font-medium">Compatibility Warnings</h4>
+              <p className="text-sm text-yellow-200/80 mt-1">
+                Operation was scheduled, but review these printer/material warnings:
+              </p>
+              <ul className="mt-2 space-y-1">
+                {compatibilityWarnings.map((warning, idx) => (
+                  <li key={idx} className="text-sm text-yellow-100">
+                    - {warning.message}
+                  </li>
+                ))}
+              </ul>
+            </div>
           )}
 
           {/* Error message */}

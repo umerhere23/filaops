@@ -3,7 +3,7 @@ Schemas for resource scheduling.
 """
 from datetime import datetime
 from typing import Optional, List
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class ScheduleOperationRequest(BaseModel):
@@ -61,7 +61,8 @@ class ScheduleOperationResponse(BaseModel):
     success: bool
     message: Optional[str] = None
     operation_id: Optional[int] = None
-    conflicts: List[ConflictInfo] = []
+    conflicts: List[ConflictInfo] = Field(default_factory=list)
+    compatibility_warnings: List[dict] = Field(default_factory=list)
 
 
 class NextAvailableSlotRequest(BaseModel):
