@@ -176,6 +176,16 @@ def setup_database():
             "ALTER TABLE sales_order_lines "
             "ADD COLUMN IF NOT EXISTS fulfillment_status VARCHAR(20)"
         ))
+        # Migration 079: filament diameter for compatibility checks
+        conn.execute(text(
+            "ALTER TABLE material_types "
+            "ADD COLUMN IF NOT EXISTS filament_diameter NUMERIC(4,2) DEFAULT 1.75"
+        ))
+        conn.execute(text(
+            "UPDATE material_types "
+            "SET filament_diameter = 1.75 "
+            "WHERE filament_diameter IS NULL"
+        ))
         conn.commit()
 
     # Seed required data
